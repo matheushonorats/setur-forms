@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= titulo ?></title>
+  <?!= include('css') ?>
+  <style>
+    body { background:#f1f3f4; }
+    .dash-header { background:#fff; border-bottom:1px solid var(--cor-borda); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+    .dash-titulo { font-size:1.25rem; font-weight:700; }
+    .dash-acoes  { display:flex; gap:8px; }
+    .main { padding:24px; max-width:1200px; margin:0 auto; }
+    .grid-metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+    .metrica { background:#fff; border-radius:12px; padding:20px; box-shadow:var(--sombra); }
+    .metrica__valor { font-size:2.25rem; font-weight:700; color:var(--cor-primaria); line-height:1; }
+    .metrica__label { font-size:.8125rem; color:var(--cor-texto-soft); margin-top:4px; }
+    .charts-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-bottom:28px; }
+    .chart-card { background:#fff; border-radius:12px; padding:20px; box-shadow:var(--sombra); }
+    .chart-card h3 { font-size:.9375rem; margin-bottom:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bar-item { display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:.875rem; }
+    .bar-item__label { width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; }
+    .bar-item__bar-wrap { flex:1; background:#f1f3f4; border-radius:4px; height:20px; overflow:hidden; }
+    .bar-item__bar { height:100%; background:var(--cor-primaria); border-radius:4px; transition:width .5s ease; }
+    .bar-item__count { min-width:32px; text-align:right; font-weight:600; color:var(--cor-texto-soft); }
+    .lista-respostas { background:#fff; border-radius:12px; box-shadow:var(--sombra); overflow:hidden; }
+    .lista-respostas__header { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--cor-borda); }
+    .lista-respostas__search { padding:8px 14px; border:1.5px solid var(--cor-borda); border-radius:8px; font-family:var(--fonte); font-size:.875rem; outline:none; width:240px; }
+    .tabela-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.875rem; }
+    th { text-align:left; padding:10px 12px; background:#f8f9fa; font-weight:500; color:var(--cor-texto-soft); font-size:.8125rem; white-space:nowrap; }
+    td { padding:10px 12px; border-bottom:1px solid var(--cor-borda); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    tr:hover td { background:#f8f9fa; }
+    .paginacao { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid var(--cor-borda); font-size:.875rem; }
+    .pizza-wrap { position:relative; }
+    canvas.pizza { display:block; margin:0 auto 12px; }
+    .legenda { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    .legenda-item { display:flex; align-items:center; gap:5px; font-size:.75rem; }
+    .legenda-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .timeline-bar { height:80px; display:flex; align-items:flex-end; gap:4px; }
+    .timeline-bar__col { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .timeline-bar__rect { width:100%; background:var(--cor-primaria); border-radius:4px 4px 0 0; opacity:.85; transition:opacity .2s; min-height:2px; }
+    .timeline-bar__rect:hover { opacity:1; }
+    .timeline-bar__data { font-size:.65rem; color:var(--cor-texto-soft); transform:rotate(-45deg); white-space:nowrap; }
+    .tela-loading { text-align:center; padding:80px; color:var(--cor-texto-soft); }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div id="tela-loading" class="tela-loading">
+  <div class="spinner spinner--dark" style="width:40px;height:40px;margin:0 auto 16px;"></div>
+  <p>Carregando dashboard...</p>
+</div>
+
+<div id="dashboard-content" style="display:none;">
+  <div class="dash-header">
+    <div>
+      <div class="dash-titulo" id="dash-titulo">—</div>
+      <div style="font-size:.8125rem;color:var(--cor-texto-soft);margin-top:2px;">
+        <span class="badge" id="dash-status">—</span>
+        <span id="dash-meta"></span>
+      </div>
+    </div>
+    <div class="dash-acoes">
+      <button class="btn btn--secondary btn--sm" id="btn-fichas-todas" onclick="gerarTodasFichas(this)">🧾 Gerar fichas</button>
+      <button class="btn btn--ghost btn--sm" id="btn-pasta-fichas" style="display:none;" onclick="abrirPastaFichas()">📁 Pasta das fichas</button>
+      <button class="btn btn--secondary btn--sm" id="btn-exportar-csv" onclick="exportarCSV()">📥 Exportar CSV</button>
+      <button class="btn btn--sm" id="btn-resetar-form" style="background:#dc3545;color:#fff;border:none;display:none;" onclick="resetarDadosFormulario(this)">⚠️ Resetar dados</button>
+      <button class="btn btn--ghost btn--sm" onclick="history.back()">← Voltar</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Métricas -->
+    <div class="grid-metricas">
+      <div class="metrica"><div class="metrica__valor" id="met-total">0</div><div class="metrica__label">Total de respostas</div></div>
+      <div class="metrica"><div class="metrica__valor" id="met-conclusao">—</div><div class="metrica__label">Taxa de conclusão</div></div>
+      <div class="metrica"><div class="metrica__valor" id="met-hoje">0</div><div class="metrica__label">Recebidas hoje</div></div>
+      <div class="metrica" id="card-planilha"><div class="metrica__valor" id="met-url"><a href="#" id="link-planilha" target="_blank">🔗</a></div><div class="metrica__label">Planilha de dados</div></div>
+    </div>
+
+    <!-- Gráfico de timeline -->
+    <div class="chart-card" style="margin-bottom:16px;">
+      <h3>Respostas por dia</h3>
+      <div class="timeline-bar" id="chart-timeline"></div>
+    </div>
+
+    <!-- Gráficos por pergunta -->
+    <div class="charts-grid" id="charts-grid"></div>
+
+    <!-- Tabela de respostas -->
+    <div class="lista-respostas" id="secao-respostas-tabela">
+      <div class="lista-respostas__header">
+        <h3 style="margin:0;">Respostas individuais</h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="search" class="lista-respostas__search" id="busca-resposta" placeholder="Buscar..." oninput="debuscaBusca()">
+        </div>
+      </div>
+      <div class="tabela-wrap" id="tabela-respostas">
+        <div style="padding:40px;text-align:center;color:var(--cor-texto-soft);">Carregando respostas...</div>
+      </div>
+      <div class="paginacao" id="paginacao">
+        <span id="pag-info"></span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn--sm btn--ghost" id="btn-ant" onclick="paginaAnterior()">← Anterior</button>
+          <button class="btn btn--sm btn--ghost" id="btn-prox" onclick="proximaPagina()">Próxima →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?!= include('js-utils') ?>
+<script>
+const FORM_ID = <?!= JSON.stringify(formId) ?>;
+const TOKEN   = <?!= JSON.stringify(token || '') ?>;
+let paginaAtual = 1;
+let buscaAtual = '';
+let totalRespostas = 0;
+let dadosDash = null;
+let debuscaTimer = null;
+
+async function inicializar() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token') || TOKEN || Sessao.obter();
+  if (!token) { Toast.erro('Sessão expirada. Faça login novamente.'); return; }
+
+  // Se o token foi explicitado (injetado via template ou passado na URL), usamos a validação
+  const acao = (TOKEN || urlParams.get('token')) ? 'validarTokenDashboard' : 'obterDadosDashboard';
+  const res = await API.call(acao, { token, formId: FORM_ID });
+
+  document.getElementById('tela-loading').style.display = 'none';
+  if (!res.ok) { Toast.erro(res.error); return; }
+
+  dadosDash = res.data;
+  document.getElementById('dashboard-content').style.display = '';
+  renderizarDashboard(dadosDash);
+  
+  if (dadosDash.isAdmin) {
+    await carregarRespostas();
+    const btnReset = document.getElementById('btn-resetar-form');
+    if (btnReset) btnReset.style.display = '';
+  } else {
+    const btnCSV = document.getElementById('btn-exportar-csv');
+    if (btnCSV) btnCSV.style.display = 'none';
+    const btnFichas = document.getElementById('btn-fichas-todas');
+    if (btnFichas) btnFichas.style.display = 'none';
+    const cardPlanilha = document.getElementById('card-planilha');
+    if (cardPlanilha) cardPlanilha.style.display = 'none';
+    const secaoResp = document.getElementById('secao-respostas-tabela');
+    if (secaoResp) secaoResp.style.display = 'none';
+  }
+}
+
+function renderizarDashboard(dados) {
+  document.getElementById('dash-titulo').textContent = dados.titulo || 'Formulário';
+  const statusEl = document.getElementById('dash-status');
+  statusEl.className = 'badge badge--' + (dados.status || 'rascunho').toLowerCase();
+  statusEl.textContent = dados.status || '—';
+
+  document.getElementById('met-total').textContent = Formato.numero(dados.totalRespostas || 0);
+  document.getElementById('met-conclusao').textContent = (dados.taxaConclusao || 0) + '%';
+
+  // Hoje
+  const hoje = new Date().toISOString().slice(0, 10);
+  const hojeItem = (dados.porDia || []).find(d => d.data === hoje);
+  document.getElementById('met-hoje').textContent = hojeItem ? hojeItem.total : 0;
+
+  // Link planilha
+  if (dados.urlPlanilha) {
+    document.getElementById('link-planilha').href = dados.urlPlanilha;
+  }
+
+  // Botão da pasta de fichas (se já existirem fichas geradas)
+  _mostrarPastaFichas(dados.urlPastaFichas);
+
+  // Timeline
+  renderizarTimeline(dados.porDia || []);
+
+  // Gráficos
+  renderizarGraficos(dados.graficos || []);
+}
+
+function renderizarTimeline(porDia) {
+  const container = document.getElementById('chart-timeline');
+  container.innerHTML = '';
+  if (!porDia.length) { container.innerHTML = '<p style="color:var(--cor-texto-soft);padding:20px;">Sem dados</p>'; return; }
+  const max = Math.max(...porDia.map(d => d.total), 1);
+  const ultimos = porDia.slice(-30);
+  ultimos.forEach(d => {
+    const col = document.createElement('div');
+    col.className = 'timeline-bar__col';
+    const pct = Math.max(4, Math.round((d.total / max) * 100));
+    col.innerHTML = `<div class="timeline-bar__rect" style="height:${pct}%" title="${d.data}: ${d.total} respostas"></div>
+                     <div class="timeline-bar__data">${d.data.slice(5)}</div>`;
+    container.appendChild(col);
+  });
+}
+
+function renderizarGraficos(graficos) {
+  const grid = document.getElementById('charts-grid');
+  grid.innerHTML = '';
+  const CORES = ['#1a73e8','#34a853','#fbbc04','#ea4335','#9c27b0','#00bcd4','#ff5722','#607d8b'];
+
+  graficos.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    const titleClean = Utils.escapeHtml(g.titulo).replace(/&lt;.*?&gt;/g, '');
+    card.innerHTML = `<h3 title="${titleClean}">${g.titulo}</h3>`;
+
+    if (g.tipo === 'barras' || g.tipo === 'histograma') {
+      const max = Math.max(...g.dados.map(d => d.count), 1);
+      g.dados.slice(0, 10).forEach((d, i) => {
+        const pct = Math.round((d.count / max) * 100);
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+          <span class="bar-item__label" title="${Utils.escapeHtml(d.label)}">${Utils.escapeHtml(d.label)}</span>
+          <div class="bar-item__bar-wrap">
+            <div class="bar-item__bar" style="width:${pct}%;background:${CORES[i % CORES.length]};"></div>
+          </div>
+          <span class="bar-item__count">${d.count}</span>`;
+        card.appendChild(item);
+      });
+      if (g.media !== undefined) {
+        const avg = document.createElement('p');
+        avg.style.cssText = 'font-size:.8125rem;color:var(--cor-texto-soft);margin-top:12px;';
+        avg.textContent = 'Média: ' + g.media.toFixed(1);
+        card.appendChild(avg);
+      }
+    } else if (g.tipo === 'pizza') {
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pizza';
+      canvas.width = 140; canvas.height = 140;
+      card.appendChild(canvas);
+      const legenda = document.createElement('div');
+      legenda.className = 'legenda';
+      g.dados.slice(0, 8).forEach((d, i) => {
+        const cor = CORES[i % CORES.length];
+        legenda.innerHTML += `<div class="legenda-item"><div class="legenda-dot" style="background:${cor};"></div><span>${Utils.escapeHtml(d.label)} (${d.count})</span></div>`;
+      });
+      card.appendChild(legenda);
+      // Desenhar pizza simples
+      setTimeout(() => desenharPizza(canvas, g.dados.slice(0, 8), CORES), 0);
+    } else if (g.tipo === 'lista') {
+      const ul = document.createElement('ul');
+      ul.style.cssText = 'list-style:none;font-size:.875rem;';
+      g.dados.forEach(d => {
+        const li = document.createElement('li');
+        li.style.cssText = 'padding:6px 0;border-bottom:1px solid var(--cor-borda);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        li.textContent = d.label;
+        li.title = d.label;
+        ul.appendChild(li);
+      });
+      if (g.total > 10) {
+        const p = document.createElement('p');
+        p.style.cssText = 'font-size:.75rem;color:var(--cor-texto-soft);margin-top:8px;';
+        p.textContent = `Exibindo últimas 10 de ${g.total} respostas.`;
+        card.appendChild(p);
+      }
+      card.appendChild(ul);
+    }
+    grid.appendChild(card);
+  });
+}
+
+function desenharPizza(canvas, dados, cores) {
+  const ctx = canvas.getContext('2d');
+  const total = dados.reduce((s, d) => s + d.count, 0);
+  if (!total) return;
+  const cx = 70, cy = 70, r = 60;
+  let angulo = -Math.PI / 2;
+  dados.forEach((d, i) => {
+    const fatia = (d.count / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angulo, angulo + fatia);
+    ctx.fillStyle = cores[i % cores.length];
+    ctx.fill();
+    angulo += fatia;
+  });
+}
+
+/* ── Tabela de Respostas ─────────────────────────────────── */
+async function carregarRespostas() {
+  const token = TOKEN || Sessao.obter();
+  const res = await API.call('listarRespostas', {
+    token, formId: FORM_ID,
+    pagina: paginaAtual, porPagina: 20, busca: buscaAtual,
+  });
+  if (!res.ok) { Toast.erro(res.error); return; }
+  const { total, pagina, totalPaginas, cabecalhos, idsCabecalhos, itens } = res.data;
+  totalRespostas = total;
+  renderizarTabela(cabecalhos, idsCabecalhos, itens);
+  document.getElementById('pag-info').textContent = `${((pagina-1)*20)+1}–${Math.min(pagina*20, total)} de ${total}`;
+  document.getElementById('btn-ant').disabled = pagina <= 1;
+  document.getElementById('btn-prox').disabled = pagina >= totalPaginas;
+}
+
+function renderizarTabela(cabecalhos, idsCabecalhos, itens) {
+  const wrap = document.getElementById('tabela-respostas');
+  if (!itens || !itens.length) {
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--cor-texto-soft);">Nenhuma resposta encontrada.</div>';
+    return;
+  }
+  const colsExcluidas = ['formId', 'versaoForm', 'enderecoIP', 'fichaUrl'];
+  const indicesVisiveis = [];
+  idsCabecalhos.forEach((id, idx) => {
+    if (!colsExcluidas.includes(id)) {
+      indicesVisiveis.push(idx);
+    }
+  });
+
+  const table = document.createElement('table');
+  const thead = table.createTHead();
+  const hr = thead.insertRow();
+  indicesVisiveis.forEach(idx => {
+    const th = document.createElement('th');
+    th.textContent = cabecalhos[idx] || '';
+    hr.appendChild(th);
+  });
+  const thAcao = document.createElement('th');
+  thAcao.textContent = 'Ficha';
+  hr.appendChild(thAcao);
+
+  const tbody = table.createTBody();
+  itens.forEach(item => {
+    const tr = tbody.insertRow();
+    indicesVisiveis.forEach(idx => {
+      const td = tr.insertCell();
+      const id = idsCabecalhos[idx];
+      td.textContent = item[id] !== undefined ? String(item[id]) : '';
+      td.title = td.textContent;
+    });
+    const tdAcao = tr.insertCell();
+    const rid = item.responseId || '';
+    const fichaUrl = item.fichaUrl || '';
+    if (fichaUrl) {
+      const a = document.createElement('a');
+      a.href = fichaUrl;
+      a.target = '_blank';
+      a.className = 'btn btn--sm btn--secondary';
+      a.textContent = '📄 Abrir ficha';
+      tdAcao.appendChild(a);
+      const reBtn = document.createElement('button');
+      reBtn.className = 'btn btn--sm btn--ghost';
+      reBtn.textContent = '↻';
+      reBtn.title = 'Gerar a ficha novamente';
+      reBtn.style.marginLeft = '4px';
+      reBtn.onclick = () => gerarFichaResposta(rid, reBtn);
+      tdAcao.appendChild(reBtn);
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn--sm btn--secondary';
+      btn.textContent = '🧾 Ficha';
+      btn.title = 'Gerar ficha de inscrição (PDF)';
+      btn.onclick = () => gerarFichaResposta(rid, btn);
+      tdAcao.appendChild(btn);
+    }
+  });
+  wrap.innerHTML = '';
+  wrap.appendChild(table);
+}
+
+let _urlPastaFichas = '';
+function _mostrarPastaFichas(url) {
+  if (!url) return;
+  _urlPastaFichas = url;
+  const b = document.getElementById('btn-pasta-fichas');
+  if (b) b.style.display = '';
+}
+function abrirPastaFichas() {
+  if (_urlPastaFichas) window.open(_urlPastaFichas, '_blank');
+}
+
+async function gerarFichaResposta(responseId, btn) {
+  if (!responseId) { Toast.erro('Resposta sem ID.'); return; }
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  const token = TOKEN || Sessao.obter();
+  const res = await API.call('gerarFicha', { token, formId: FORM_ID, responseId });
+  if (btn) { btn.disabled = false; btn.textContent = txt; }
+  if (!res.ok) { Toast.erro(res.error || 'Erro ao gerar ficha.'); return; }
+  Toast.sucesso('Ficha gerada!');
+  _mostrarPastaFichas(res.data.urlPasta);
+  window.open(res.data.url, '_blank');
+  carregarRespostas(); // atualiza a tabela para exibir o link salvo
+}
+
+async function gerarTodasFichas(btn) {
+  if (!confirm('Gerar a ficha (PDF) de TODAS as respostas? Pode levar alguns segundos por ficha.')) return;
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Gerando...'; }
+  const token = TOKEN || Sessao.obter();
+  const res = await API.call('gerarFichasTodas', { token, formId: FORM_ID });
+  if (btn) { btn.disabled = false; btn.textContent = txt; }
+  if (!res.ok) { Toast.erro(res.error || 'Erro ao gerar fichas.'); return; }
+  Toast.sucesso('Geradas ' + res.data.gerados + ' de ' + res.data.total + ' fichas.');
+  _mostrarPastaFichas(res.data.urlPasta);
+}
+
+function debuscaBusca() {
+  clearTimeout(debuscaTimer);
+  debuscaTimer = setTimeout(() => {
+    buscaAtual = document.getElementById('busca-resposta').value;
+    paginaAtual = 1;
+    carregarRespostas();
+  }, 400);
+}
+
+function paginaAnterior()  { if (paginaAtual > 1) { paginaAtual--; carregarRespostas(); } }
+function proximaPagina()   { paginaAtual++; carregarRespostas(); }
+
+async function exportarCSV() {
+  const token = TOKEN || Sessao.obter();
+  Toast.info('Preparando arquivo CSV...');
+  const res = await API.call('exportarCSV', { token, formId: FORM_ID });
+  if (!res.ok) { Toast.erro(res.error); return; }
+  Utils.downloadTexto(res.data.csv, res.data.nomeArquivo, 'text/csv;charset=utf-8;');
+  Toast.sucesso('CSV baixado!');
+}
+
+async function resetarDadosFormulario(btn) {
+  const conf = prompt(
+    "⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\n" +
+    "Isso irá APAGAR PERMANENTEMENTE:\n" +
+    "1. Todas as respostas registradas para este formulário.\n" +
+    "2. Todos os arquivos anexados (incluindo imagens, assinaturas, etc.) e fichas no Google Drive.\n\n" +
+    "Para prosseguir, digite a palavra RESETAR abaixo:"
+  );
+
+  if (conf !== "RESETAR") {
+    return;
+  }
+
+  if (!confirm("Tem certeza absoluta de que deseja redefinir o formulário? Esta é a última confirmação.")) {
+    return;
+  }
+
+  try {
+    Loading.show(btn, 'Resetando...');
+    const res = await API.call('resetarFormulario', { token: Sessao.obter(), formId: FORM_ID });
+    Loading.hide(btn);
+    
+    if (res.ok) {
+      Toast.sucesso("Formulário resetado com sucesso! Recarregando página...");
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      Toast.erro(res.error || "Erro ao resetar formulário.");
+    }
+  } catch (err) {
+    Loading.hide(btn);
+    Toast.erro("Erro de conexão ao tentar resetar.");
+  }
+}
+
+document.addEventListener('DOMContentLoaded', inicializar);
+</script>
+</body>
+</html>

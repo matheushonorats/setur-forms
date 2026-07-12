@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Formulários públicos — SETUR">
+  <title><?= titulo ?></title>
+  <?!= include('css') ?>
+  <style>
+    .hero { background:linear-gradient(135deg,#1a73e8,#0d47a1); color:#fff; text-align:center; padding:64px 20px 48px; }
+    .hero h1 { color:#fff; font-size:2rem; margin-bottom:10px; }
+    .hero p  { color:rgba(255,255,255,.85); font-size:1rem; margin:0; }
+    .grid-forms { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+    .card-form-pub { background:#fff; border-radius:12px; box-shadow:var(--sombra); transition:box-shadow var(--transicao),transform var(--transicao); overflow:hidden; display:flex; flex-direction:column; text-decoration:none; color:var(--cor-texto); }
+    .card-form-pub:hover { box-shadow:var(--sombra-hover); transform:translateY(-2px); }
+    .card-form-pub__topo { height:6px; background:var(--cor-primaria); }
+    .card-form-pub__body { padding:20px; flex:1; }
+    .card-form-pub__titulo { font-weight:600; font-size:1rem; margin-bottom:6px; }
+    .card-form-pub__desc { font-size:.875rem; color:var(--cor-texto-soft); margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .card-form-pub__footer { padding:12px 20px; border-top:1px solid var(--cor-borda); display:flex; align-items:center; justify-content:space-between; font-size:.8125rem; color:var(--cor-texto-soft); }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div style="font-size:2.5rem;margin-bottom:12px;">📋</div>
+  <h1>Formulários SETUR</h1>
+  <p>Selecione um formulário abaixo para responder</p>
+</div>
+
+<div class="container--wide" style="padding-top:32px;padding-bottom:48px;">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+    <input type="search" id="busca-pub" placeholder="🔎 Buscar formulário..." oninput="renderPublica()" class="campo__input" style="flex:1;min-width:200px;max-width:360px;">
+    <select id="status-pub" class="campo__select" style="max-width:170px;" onchange="renderPublica()">
+      <option value="">Todos</option>
+      <option value="ATIVO">Abertos</option>
+      <option value="PAUSADO">Pausados</option>
+      <option value="ENCERRADO">Encerrados</option>
+    </select>
+    <select id="ordenar-pub" class="campo__select" style="max-width:180px;" onchange="renderPublica()">
+      <option value="recente">Mais recentes</option>
+      <option value="az">Título (A–Z)</option>
+      <option value="respostas">Mais respostas</option>
+    </select>
+  </div>
+  <div id="lista-publica" class="grid-forms">
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--cor-texto-soft);">
+      <div class="spinner spinner--dark" style="width:36px;height:36px;margin:0 auto 16px;"></div>
+      <p>Carregando formulários...</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<?!= include('js-utils') ?>
+<script>
+const URL_BASE = <?!= JSON.stringify(urlBase || '') ?>;
+let _formsPub = [];
+const _ROTULO_STATUS = {
+  ATIVO:     { txt: 'Aberto',    cls: 'ativo' },
+  PAUSADO:   { txt: 'Pausado',   cls: 'pausado' },
+  ENCERRADO: { txt: 'Encerrado', cls: 'encerrado' }
+};
+
+async function carregarFormularios() {
+  const res = await API.call('listarFormulariosPublicos', {});
+  _formsPub = (res.ok && res.data) ? res.data : [];
+  renderPublica();
+}
+
+function renderPublica() {
+  const container = document.getElementById('lista-publica');
+  const termo = (((document.getElementById('busca-pub') || {}).value) || '').trim().toLowerCase();
+  const status = ((document.getElementById('status-pub') || {}).value) || '';
+  const ordem = ((document.getElementById('ordenar-pub') || {}).value) || 'recente';
+
+  let lista = _formsPub.slice();
+  if (status) lista = lista.filter(f => f.status === status);
+  if (termo) lista = lista.filter(f =>
+    String(f.titulo || '').toLowerCase().includes(termo) ||
+    String(f.descricao || '').toLowerCase().includes(termo)
+  );
+  if (ordem === 'az') {
+    lista.sort((a, b) => String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR', { sensitivity: 'base' }));
+  } else if (ordem === 'respostas') {
+    lista.sort((a, b) => (parseInt(b.totalRespostas) || 0) - (parseInt(a.totalRespostas) || 0));
+  } else {
+    lista.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+  }
+
+  if (!lista.length) {
+    container.innerHTML = '<div class="estado-vazio" style="grid-column:1/-1;"><div class="estado-vazio__icone">📋</div><h3>Nenhum formulário encontrado</h3></div>';
+    return;
+  }
+  container.innerHTML = '';
+  lista.forEach(f => {
+    const card = document.createElement('a');
+    card.className = 'card-form-pub';
+    card.href = (URL_BASE || '') + '?form=' + f.formId;
+    card.target = '_top';
+    const cor = (f.tema && f.tema.corPrimaria) || '#1a73e8';
+    const st = _ROTULO_STATUS[f.status] || { txt: f.status || '', cls: '' };
+    card.innerHTML =
+      '<div class="card-form-pub__topo" style="background:' + cor + ';"></div>' +
+      '<div class="card-form-pub__body">' +
+        '<div class="card-form-pub__titulo">' + Utils.escapeHtml(f.titulo || '') + '</div>' +
+        '<div class="card-form-pub__desc">' + Utils.escapeHtml(f.descricao || '') + '</div>' +
+      '</div>' +
+      '<div class="card-form-pub__footer">' +
+        '<span>📝 ' + (f.totalRespostas || 0) + ' resposta(s)</span>' +
+        '<span class="badge badge--' + st.cls + '">' + st.txt + '</span>' +
+      '</div>';
+    container.appendChild(card);
+  });
+}
+document.addEventListener('DOMContentLoaded', carregarFormularios);
+</script>
+</body>
+</html>

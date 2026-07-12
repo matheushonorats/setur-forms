@@ -1,0 +1,268 @@
+<script>
+/* ============================================================
+   SETUR Forms GAS — Utilitários JavaScript Compartilhados
+   ============================================================ */
+
+// ── API Client ──────────────────────────────────────────────
+const API = {
+  /**
+   * Chama a API do backend via google.script.run.
+   * @param {string} action
+   * @param {Object} payload
+   * @returns {Promise<{ok:boolean, data?:*, error?:string, codigo?:string}>}
+   */
+  call(action, payload = {}) {
+    return new Promise((resolve) => {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && !res.ok && res.codigo === 'SESSAO_INVALIDA') {
+            console.warn('[API] Sessão expirada detectada.');
+            if (typeof redirecionarParaLogin === 'function') {
+              redirecionarParaLogin();
+            } else {
+              Sessao.limpar();
+            }
+          }
+          resolve(res);
+        })
+        .withFailureHandler((err) => {
+          console.error('[API] Falha na chamada:', action, err);
+          resolve({ ok: false, error: 'Erro de comunicação com o servidor. Verifique sua conexão.' });
+        })
+        .api(action, payload);
+    });
+  }
+};
+
+// ── Toast / Notificações ────────────────────────────────────
+const Toast = {
+  _container: null,
+
+  _getContainer() {
+    if (!this._container) {
+      this._container = document.getElementById('toast-container');
+      if (!this._container) {
+        this._container = document.createElement('div');
+        this._container.id = 'toast-container';
+        document.body.appendChild(this._container);
+      }
+    }
+    return this._container;
+  },
+
+  show(mensagem, tipo = 'info', duracao = 4000) {
+    const el = document.createElement('div');
+    el.className = `toast toast--${tipo}`;
+    el.textContent = mensagem;
+    this._getContainer().appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.3s';
+      setTimeout(() => el.remove(), 320);
+    }, duracao);
+  },
+
+  sucesso(msg) { this.show(msg, 'sucesso'); },
+  erro(msg)    { this.show(msg, 'erro', 6000); },
+  aviso(msg)   { this.show(msg, 'aviso'); },
+  info(msg)    { this.show(msg, 'info'); },
+};
+
+// ── Loading State ───────────────────────────────────────────
+const Loading = {
+  show(btn, texto = 'Aguarde...') {
+    if (!btn) return;
+    btn._textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> ${texto}`;
+  },
+  hide(btn) {
+    if (!btn || !btn._textoOriginal) return;
+    btn.disabled = false;
+    btn.innerHTML = btn._textoOriginal;
+    delete btn._textoOriginal;
+  },
+};
+
+// ── SafeStorage (fallback em memória se o localStorage estiver bloqueado) ──
+const SafeStorage = {
+  _mem: {},
+  _ok: null,
+  _disp() {
+    if (this._ok !== null) return this._ok;
+    try {
+      const k = '__st_test__';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+      this._ok = true;
+    } catch (e) { this._ok = false; }
+    return this._ok;
+  },
+  getItem(k) {
+    if (this._disp()) { try { return localStorage.getItem(k); } catch (e) {} }
+    return Object.prototype.hasOwnProperty.call(this._mem, k) ? this._mem[k] : null;
+  },
+  setItem(k, v) {
+    this._mem[k] = String(v);
+    if (this._disp()) { try { localStorage.setItem(k, v); } catch (e) {} }
+  },
+  removeItem(k) {
+    delete this._mem[k];
+    if (this._disp()) { try { localStorage.removeItem(k); } catch (e) {} }
+  },
+};
+
+// ── Sessão Admin ────────────────────────────────────────────
+const Sessao = {
+  CHAVE: 'seturforms_token',
+
+  salvar(token) { SafeStorage.setItem(this.CHAVE, token); },
+  obter() {
+    var urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('token') || SafeStorage.getItem(this.CHAVE) || '';
+  },
+  limpar()      { SafeStorage.removeItem(this.CHAVE); },
+  existe()      { return !!this.obter(); },
+};
+
+// ── Rascunho automático ─────────────────────────────────────
+const Rascunho = {
+  salvar(formId, dados) {
+    try {
+      SafeStorage.setItem('rascunho_' + formId, JSON.stringify({ dados, ts: Date.now() }));
+    } catch(e) { /* Silencioso — quota de localStorage */ }
+  },
+
+  carregar(formId) {
+    try {
+      const raw = SafeStorage.getItem('rascunho_' + formId);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Rascunho válido por 7 dias
+      if (Date.now() - parsed.ts > 7 * 24 * 3600 * 1000) {
+        this.limpar(formId);
+        return null;
+      }
+      return parsed.dados;
+    } catch(e) { return null; }
+  },
+
+  limpar(formId) {
+    SafeStorage.removeItem('rascunho_' + formId);
+  },
+};
+
+// ── Fingerprint (para rate limiting) ───────────────────────
+const Fingerprint = {
+  obter() {
+    let fp = SafeStorage.getItem('seturforms_fp');
+    if (!fp) {
+      fp = Math.random().toString(36).slice(2) +
+           Date.now().toString(36) +
+           (navigator.language || '').replace(/[^a-z]/g,'');
+      SafeStorage.setItem('seturforms_fp', fp);
+    }
+    return fp + navigator.userAgent.slice(0, 20);
+  },
+};
+
+// ── Formatação ──────────────────────────────────────────────
+const Formato = {
+  data(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+        timeZone: 'America/Sao_Paulo',
+      });
+    } catch(e) { return iso; }
+  },
+
+  numero(n) {
+    return Number(n).toLocaleString('pt-BR');
+  },
+
+  bytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  },
+};
+
+// ── DOM Helpers ─────────────────────────────────────────────
+const DOM = {
+  qs(sel, parent = document)  { return parent.querySelector(sel); },
+  qsa(sel, parent = document) { return [...parent.querySelectorAll(sel)]; },
+
+  criar(tag, attrs = {}, ...filhos) {
+    const el = document.createElement(tag);
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'text') el.textContent = v;
+      else el.setAttribute(k, v);
+    });
+    filhos.forEach(f => f && el.appendChild(typeof f === 'string' ? document.createTextNode(f) : f));
+    return el;
+  },
+
+  mostrar(el) { if (el) el.style.display = ''; },
+  ocultar(el) { if (el) el.style.display = 'none'; },
+
+  setErro(inputEl, msg) {
+    if (!inputEl) return;
+    inputEl.classList.add('campo__input--erro', 'campo__select--erro', 'campo__textarea--erro');
+    let erroEl = inputEl.parentElement.querySelector('.campo__erro');
+    if (!erroEl) {
+      erroEl = document.createElement('p');
+      erroEl.className = 'campo__erro';
+      inputEl.parentElement.appendChild(erroEl);
+    }
+    erroEl.textContent = '⚠ ' + msg;
+  },
+
+  clearErro(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.remove('campo__input--erro', 'campo__select--erro', 'campo__textarea--erro');
+    const erroEl = inputEl.parentElement.querySelector('.campo__erro');
+    if (erroEl) erroEl.remove();
+  },
+};
+
+// ── Utilitários Gerais ──────────────────────────────────────
+const Utils = {
+  debounce(fn, ms = 400) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  },
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  /** Baixa um arquivo de texto para o computador do usuário */
+  downloadTexto(conteudo, nomeArquivo, tipo = 'text/plain') {
+    const blob = new Blob([conteudo], { type: tipo });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  /** Copia texto para a área de transferência */
+  async copiar(texto) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    } catch(e) { return false; }
+  },
+};
+</script>

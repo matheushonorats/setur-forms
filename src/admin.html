@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= titulo ?></title>
+  <?!= include('css') ?>
+  <style>
+    body { background:#f1f3f4; }
+    .top-bar { background:#fff; border-bottom:1px solid var(--cor-borda); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .top-bar__logo { font-weight:700; font-size:1.1rem; color:var(--cor-primaria); display:flex; align-items:center; gap:8px; }
+    .top-bar__acoes { display:flex; gap:8px; align-items:center; }
+    .sidebar { width:260px; background:#fff; border-right:1px solid var(--cor-borda); height:calc(100vh - 53px); position:fixed; top:53px; left:0; display:flex; flex-direction:column; overflow:hidden; }
+    .sidebar__header { padding:16px; font-weight:600; font-size:.875rem; color:var(--cor-texto-soft); text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--cor-borda); }
+    .sidebar__lista { flex:1; overflow-y:auto; padding:8px; }
+    .form-item { padding:10px 12px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:10px; transition:background var(--transicao); font-size:.9rem; margin-bottom:2px; }
+    .form-item:hover { background:#f1f3f4; }
+    .form-item.ativo { background:#e8f0fe; color:var(--cor-primaria); font-weight:600; }
+    .form-item__badge { margin-left:auto; }
+    .sidebar__footer { padding:12px; border-top:1px solid var(--cor-borda); }
+    .main { margin-left:260px; padding:24px; min-height:calc(100vh - 53px); }
+    @media(max-width:768px) { .sidebar{ display:none; } .main{ margin-left:0; } }
+
+    /* Login */
+    #tela-login { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%); }
+    .login-card { background:#fff; border-radius:16px; padding:48px 40px; max-width:400px; width:100%; box-shadow:0 8px 40px rgba(0,0,0,0.2); text-align:center; }
+    .login-card h1 { margin-bottom:8px; }
+    .login-card p { color:var(--cor-texto-soft); margin-bottom:28px; }
+    .login-logo { font-size:2.5rem; margin-bottom:16px; }
+
+    /* Dashboard cards */
+    .grid-metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:24px; }
+    .metrica-card { background:#fff; border-radius:12px; padding:20px; box-shadow:var(--sombra); }
+    .metrica-card__valor { font-size:2rem; font-weight:700; color:var(--cor-primaria); line-height:1; }
+    .metrica-card__label { font-size:.8125rem; color:var(--cor-texto-soft); margin-top:4px; }
+
+    /* Lista de formulários */
+    .lista-forms { display:flex; flex-direction:column; gap:12px; }
+    .card-form { background:#fff; border-radius:12px; padding:20px; box-shadow:var(--sombra); display:flex; align-items:center; gap:16px; cursor:pointer; transition:box-shadow var(--transicao); }
+    .card-form:hover { box-shadow:var(--sombra-hover); }
+    .card-form__info { flex:1; min-width:0; }
+    .card-form__titulo { font-weight:600; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-form__meta { font-size:.8125rem; color:var(--cor-texto-soft); margin-top:3px; }
+    .card-form__acoes { display:flex; gap:8px; flex-shrink:0; }
+
+    /* Builder */
+    .builder-wrap { display:grid; grid-template-columns:250px 1fr 300px; gap:0; height:calc(100vh - 53px); overflow:hidden; }
+    .builder-painel { background:#fff; border-right:1px solid var(--cor-borda); display:flex; flex-direction:column; overflow:hidden; }
+    .builder-painel__header { padding:12px 16px; font-weight:600; font-size:.8125rem; text-transform:uppercase; letter-spacing:.06em; color:var(--cor-texto-soft); border-bottom:1px solid var(--cor-borda); }
+    .builder-painel__body { flex:1; overflow-y:auto; padding:12px; }
+    .builder-canvas { background:#f1f3f4; overflow-y:auto; padding:24px; min-height:0; height:100%; width:100%; }
+    .builder-form-preview { width:100%; max-width:680px; background:#fff; border-radius:12px; box-shadow:var(--sombra); overflow:hidden; margin:0 auto 40px auto; }
+    .tipo-pergunta-btn { width:100%; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:8px; background:#fff; cursor:pointer; font-family:var(--fonte); font-size:.875rem; display:flex; align-items:center; gap:8px; margin-bottom:6px; transition:all .15s; text-align:left; }
+    .tipo-pergunta-btn:hover { border-color:var(--cor-primaria); background:#f0f7ff; color:var(--cor-primaria); }
+    .pergunta-item { background:#fff; border:1.5px solid var(--cor-borda); border-radius:10px; margin-bottom:12px; cursor:grab; position:relative; transition:border-color .15s, box-shadow .15s; }
+    .pergunta-item:hover { border-color:#aecbfa; box-shadow:0 2px 8px rgba(26,115,232,.12); }
+    .pergunta-item.selecionada { border-color:var(--cor-primaria); box-shadow:0 4px 12px rgba(26,115,232,0.12); border-left:6px solid var(--cor-primaria); background-color:#f8faff; }
+    .pergunta-item__header { padding:14px 16px; display:flex; align-items:center; gap:10px; }
+    .pergunta-item__drag { color:var(--cor-texto-soft); cursor:grab; font-size:1.1rem; }
+    .pergunta-item__tipo { font-size:.75rem; color:var(--cor-texto-soft); background:#f1f3f4; padding:2px 8px; border-radius:12px; }
+    .pergunta-item__titulo { flex:1; font-size:.9375rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pergunta-item__acoes { display:flex; gap:4px; }
+    .propriedades-campo { margin-bottom:16px; }
+    .propriedades-campo label { display:block; font-size:.8125rem; font-weight:500; color:var(--cor-texto-soft); margin-bottom:5px; }
+    .tab-bar { display:flex; border-bottom:1px solid var(--cor-borda); padding:0 16px; }
+    .tab { padding:10px 14px; cursor:pointer; font-size:.875rem; font-weight:500; color:var(--cor-texto-soft); border-bottom:2px solid transparent; transition:all .15s; }
+    .tab.ativa { color:var(--cor-primaria); border-bottom-color:var(--cor-primaria); }
+    .tab-content { display:none; }
+    .tab-content.ativa { display:block; }
+    .secao-builder { background:#f8f9fa; border:1.5px dashed var(--cor-borda); border-radius:10px; margin-bottom:16px; }
+    .secao-builder__header { padding:12px 16px; display:flex; align-items:center; gap:8px; cursor:pointer; }
+    .secao-builder__body { padding:0 16px 16px; }
+    .drag-drop-zone { min-height:60px; border:2px dashed #aecbfa; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--cor-texto-soft); font-size:.875rem; transition:background .15s; }
+    .drag-drop-zone.over { background:#f0f7ff; border-color:var(--cor-primaria); }
+    .toggle-wrap { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .toggle { position:relative; width:40px; height:22px; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:#ccc; border-radius:22px; cursor:pointer; transition:.3s; }
+    .toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:2px; bottom:2px; background:#fff; border-radius:50%; transition:.3s; }
+    .toggle input:checked + .toggle-slider { background:var(--cor-primaria); }
+    .toggle input:checked + .toggle-slider::before { transform:translateX(18px); }
+    .opcao-lista-item { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+    .opcao-lista-item input { flex:1; }
+
+    /* Ajustes ativos e Drag & Drop */
+    .secao-builder.ativa { border-color: var(--cor-primaria); box-shadow: 0 0 8px rgba(26,115,232,0.15); }
+    .pergunta-item.dragging { opacity: 0.4; border-style: dashed; }
+    .pergunta-item.drag-over { border-color: var(--cor-primaria); background-color: #f0f7ff; }
+    
+    /* Toolbar de Formatação */
+    .toolbar-formatacao { display:flex; gap:4px; }
+    .toolbar-formatacao button {
+      background: #f1f3f4; border: 1px solid var(--cor-borda); border-radius: 4px;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.85rem; color: var(--cor-texto); transition: background var(--transicao);
+    }
+    .toolbar-formatacao button:hover { background: #e8eaed; }
+    
+    .builder-form-preview div[style*="background"] .toolbar-formatacao button {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+    .builder-form-preview div[style*="background"] .toolbar-formatacao button:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Travar rolagem do body no builder */
+    body.builder-active {
+      height: 100vh;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ────────────────────────────────────────────── -->
+<div id="tela-login">
+  <div class="login-card">
+    <div class="login-logo">📋</div>
+    <h1>SETUR Forms GAS</h1>
+    <p>Painel administrativo — SETUR</p>
+    <div class="campo">
+      <label class="campo__label" for="input-senha">Senha de acesso</label>
+      <input type="password" class="campo__input" id="input-senha" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn--primary btn--full btn--lg" id="btn-login" onclick="fazerLogin()">Entrar</button>
+    <p id="login-erro" style="color:var(--cor-erro);font-size:.875rem;margin-top:12px;display:none;"></p>
+  </div>
+</div>
+
+<!-- ── PAINEL ADMIN ──────────────────────────────────────── -->
+<div id="painel-admin" style="display:none;">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar__logo">📋 SETUR Forms</div>
+    <div class="top-bar__acoes">
+      <span id="top-pag-nome" style="font-size:.875rem;color:var(--cor-texto-soft);margin-right:8px;"></span>
+      <div id="builder-top-actions" style="display:none; gap:8px; align-items:center; margin-right:8px;">
+        <button class="btn btn--secondary btn--sm" onclick="visualizarFormAtual()" id="btn-visualizar">👁 Visualizar</button>
+      </div>
+      <button class="btn btn--ghost btn--sm" onclick="paginaSair()">Sair</button>
+    </div>
+  </div>
+
+  <!-- Tela principal (lista) -->
+  <div id="tela-lista">
+    <div class="sidebar">
+      <div class="sidebar__header">Formulários</div>
+      <div class="sidebar__lista" id="sidebar-lista"></div>
+      <div class="sidebar__footer">
+        <button class="btn btn--primary btn--full" onclick="novoFormulario()">+ Novo Formulário</button>
+      </div>
+    </div>
+    <div class="main">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <div>
+          <h1 style="font-size:1.5rem;">Painel de Formulários</h1>
+          <p style="color:var(--cor-texto-soft);margin:0;">Gerencie seus formulários SETUR</p>
+        </div>
+        <button class="btn btn--primary" onclick="novoFormulario()">+ Novo</button>
+      </div>
+      <div class="grid-metricas">
+        <div class="metrica-card"><div class="metrica-card__valor" id="met-total-forms">—</div><div class="metrica-card__label">Formulários</div></div>
+        <div class="metrica-card"><div class="metrica-card__valor" id="met-ativos">—</div><div class="metrica-card__label">Ativos</div></div>
+        <div class="metrica-card"><div class="metrica-card__valor" id="met-total-resp">—</div><div class="metrica-card__label">Respostas</div></div>
+        <div class="metrica-card"><div class="metrica-card__valor" id="met-hoje">—</div><div class="metrica-card__label">Hoje</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+        <h2 style="margin:0;flex:1;min-width:160px;">Todos os formulários</h2>
+        <input type="search" id="busca-forms" placeholder="🔎 Buscar por título ou descrição..." oninput="aplicarFiltroOrdenacao()" class="campo__input" style="max-width:300px;flex:1;min-width:180px;">
+        <select id="filtro-status" class="campo__select" style="max-width:170px;" onchange="aplicarFiltroOrdenacao()">
+          <option value="">Todos os status</option>
+          <option value="ATIVO">Ativos</option>
+          <option value="RASCUNHO">Rascunho</option>
+          <option value="PAUSADO">Pausados</option>
+          <option value="ENCERRADO">Encerrados</option>
+        </select>
+        <select id="ordenar-forms" class="campo__select" style="max-width:190px;" onchange="aplicarFiltroOrdenacao()">
+          <option value="recente">Mais recentes</option>
+          <option value="az">Título (A–Z)</option>
+          <option value="respostas">Mais respostas</option>
+        </select>
+      </div>
+      <div id="lista-forms-container" class="lista-forms">
+        <div class="estado-vazio"><div class="estado-vazio__icone">📋</div><h3>Carregando...</h3></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Builder -->
+  <div id="tela-builder" style="display:none;" class="builder-wrap">
+    <!-- Painel esq: tipos de pergunta -->
+    <div class="builder-painel">
+      <div class="builder-painel__header">Adicionar pergunta</div>
+      <div class="builder-painel__body" id="painel-tipos"></div>
+    </div>
+    <!-- Canvas central -->
+    <div class="builder-canvas" id="builder-canvas">
+      <div class="builder-form-preview" id="form-preview">
+        <!-- Cabeçalho do form -->
+        <div style="padding:24px;background:var(--cor-primaria);color:#fff;border-radius:12px 12px 0 0;">
+          <!-- Rich text toolbar expandida para descrição -->
+          <div class="toolbar-formatacao" style="margin-bottom: 8px; gap: 4px; flex-wrap: wrap;">
+            <button type="button" onclick="execFormatacao('bold')" title="Negrito"><b>B</b></button>
+            <button type="button" onclick="execFormatacao('italic')" title="Itálico"><i>I</i></button>
+            <button type="button" onclick="execFormatacao('underline')" title="Sublinhado"><u>U</u></button>
+            <button type="button" onclick="execFormatacao('strikeThrough')" title="Tachado" style="text-decoration:line-through;">S</button>
+            <span style="color:rgba(255,255,255,0.4); margin: 0 2px;">|</span>
+            <button type="button" onclick="execFormatacao('justifyLeft')" title="Alinhar esquerda">&#8676;</button>
+            <button type="button" onclick="execFormatacao('justifyCenter')" title="Centralizar">≡</button>
+            <button type="button" onclick="execFormatacao('justifyRight')" title="Alinhar direita">&#8677;</button>
+            <span style="color:rgba(255,255,255,0.4); margin: 0 2px;">|</span>
+            <button type="button" onclick="execFormatacao('insertUnorderedList')" title="Lista não ordenada">•</button>
+            <button type="button" onclick="execFormatacao('insertOrderedList')" title="Lista ordenada">1.</button>
+            <span style="color:rgba(255,255,255,0.4); margin: 0 2px;">|</span>
+            <button type="button" onclick="inserirLinkDescricao()" title="Inserir link">🔗</button>
+            <button type="button" onclick="execFormatacao('removeFormat')" title="Remover formatação">Aa</button>
+          </div>
+          <input type="text" id="builder-titulo" placeholder="Título do formulário" style="width:100%;background:none;border:none;color:#fff;font-size:1.375rem;font-weight:700;outline:none;font-family:var(--fonte);" oninput="debounceAutoSave()">
+          <div id="builder-descricao" contenteditable="true" data-placeholder="Descrição (opcional)" style="width:100%;background:none;border:none;color:rgba(255,255,255,.85);font-size:.9rem;outline:none;font-family:var(--fonte);margin-top:6px;min-height:40px;word-break:break-word;" oninput="debounceAutoSave()"></div>
+        </div>
+        <!-- Seções e perguntas -->
+        <div id="builder-secoes" style="padding:16px;"></div>
+        <div style="padding:16px;border-top:1px solid var(--cor-borda);">
+          <button class="btn btn--secondary btn--sm" onclick="adicionarSecao()">+ Adicionar Seção</button>
+        </div>
+      </div>
+    </div>
+    <!-- Painel dir: propriedades -->
+    <div class="builder-painel" style="border-left:1px solid var(--cor-borda);border-right:none;">
+      <div class="tab-bar">
+        <div class="tab ativa" onclick="mudarTab('pergunta')">Pergunta</div>
+        <div class="tab" onclick="mudarTab('form')">Formulário</div>
+        <div class="tab" onclick="mudarTab('tema')">Tema</div>
+      </div>
+      <div id="painel-props" style="overflow-y:auto;flex:1;padding:16px;">
+        <div id="tab-pergunta" class="tab-content ativa">
+          <p style="color:var(--cor-texto-soft);font-size:.875rem;">Clique em uma pergunta para editar suas propriedades.</p>
+        </div>
+        <div id="tab-form" class="tab-content">
+          <div class="propriedades-campo">
+            <label>Link para divulgação</label>
+            <div style="display:flex; gap:6px;">
+              <input type="text" id="prop-link-divulgacao" class="campo__input" readonly onclick="this.select()" style="font-size: 0.8rem; background: #fafafa;" placeholder="Carregando link...">
+              <button class="btn btn--secondary btn--sm" onclick="copiarLink()" style="padding: 0 10px;">Copiar</button>
+            </div>
+          </div>
+          <div class="propriedades-campo">
+            <label>Link curto e incorporação</label>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn--secondary btn--sm" id="btn-link-curto" onclick="copiarLinkCurto(this)">🔗 Copiar link curto</button>
+              <button class="btn btn--secondary btn--sm" onclick="copiarIncorporacao()">&lt;/&gt; Copiar incorporação</button>
+            </div>
+          </div>
+          <div class="propriedades-campo">
+            <label>Status</label>
+            <select class="campo__select" id="prop-status" onchange="alterarStatusFormulario(this.value)">
+              <option value="RASCUNHO">Rascunho</option>
+              <option value="ATIVO">Ativo (público)</option>
+              <option value="PAUSADO">Pausado</option>
+              <option value="ENCERRADO">Encerrado</option>
+            </select>
+          </div>
+          <div class="propriedades-campo">
+            <label>Data de início</label>
+            <input type="datetime-local" class="campo__input" id="prop-data-inicio" onchange="salvarPropriedadeForm('dataInicio',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Data de encerramento</label>
+            <input type="datetime-local" class="campo__input" id="prop-data-limite" onchange="salvarPropriedadeForm('dataLimite',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Modo de exibição do prazo</label>
+            <select class="campo__select" id="prop-modo-prazo" onchange="salvarPropriedadeConfigJSON('modoExibicaoPrazo', this.value)">
+              <option value="OCULTO">Não exibir</option>
+              <option value="APENAS_DATA">Apenas data e hora</option>
+              <option value="CONTAGEM">Contagem regressiva + data/hora</option>
+            </select>
+          </div>
+          <div class="propriedades-campo">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.875rem;">
+              <input type="checkbox" id="prop-auto-promover-prazo" onchange="salvarPropriedadeConfigJSON('autoPromoverPrazo', this.checked)">
+              Contagem regressiva automática nas últimas 48h
+            </label>
+          </div>
+          <div class="propriedades-campo">
+            <label>Texto informativo do prazo</label>
+            <input type="text" class="campo__input" id="prop-texto-banner-prazo" placeholder="Ex: Prazo de encerramento:" oninput="salvarPropriedadeConfigJSON('textoBannerPrazo', this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Limite de respostas (0 = ilimitado)</label>
+            <input type="number" class="campo__input" id="prop-limite" min="0" onchange="salvarPropriedadeForm('limiteRespostas',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Link para edital / regulamento</label>
+            <input type="url" class="campo__input" id="prop-link-edital" placeholder="https://..." oninput="salvarPropriedadeConfigJSON('linkEdital', this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Versão do formulário</label>
+            <input type="text" class="campo__input" id="prop-versao-form" placeholder="ex: 1.0, 2.1, Edição 2026..." oninput="salvarPropriedadeConfigJSON('versao', this.value)" title="Esta versão é gravada em cada resposta recebida, permitindo rastrear em qual versão do formulário ela foi preenchida.">
+            <p style="font-size:.7rem;color:var(--cor-texto-soft);margin-top:3px;">Registrada em cada resposta. Útil para rastrear mudanças entre edições.</p>
+          </div>
+          <div class="propriedades-campo">
+            <label>Texto do link do edital</label>
+            <input type="text" class="campo__input" id="prop-texto-link-edital" placeholder="Clique aqui para ler o edital" oninput="salvarPropriedadeConfigJSON('textoLinkEdital', this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Mensagem de confirmação</label>
+            <textarea class="campo__textarea" id="prop-msg-conf" rows="3" onchange="salvarPropriedadeForm('mensagemConfirmacao',this.value)"></textarea>
+          </div>
+          <div class="toggle-wrap">
+            <label style="font-size:.875rem;font-weight:500;">Resposta única por pessoa</label>
+            <label class="toggle"><input type="checkbox" id="prop-resp-unica" onchange="salvarPropriedadeForm('respostaUnica',this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-wrap">
+            <label style="font-size:.875rem;font-weight:500;">Notificar admin</label>
+            <label class="toggle"><input type="checkbox" id="prop-notif" onchange="salvarPropriedadeForm('notificarAdmin',this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn--secondary btn--sm" onclick="copiarLink()">&#128203; Copiar link do formulário</button>
+            <button class="btn btn--secondary btn--sm" onclick="abrirDashboard()">&#128202; Ver dashboard</button>
+            <button class="btn btn--secondary btn--sm" onclick="duplicarFormAtual()">⧭ Duplicar formulário</button>
+            <button class="btn btn--danger btn--sm" onclick="excluirFormAtual()">&#128465; Excluir formulário</button>
+          </div>
+        </div>
+        <div id="tab-tema" class="tab-content">
+          <div class="propriedades-campo">
+            <label>Cor primária</label>
+            <input type="color" class="campo__input" id="prop-cor-primaria" value="#1a73e8" onchange="atualizarTema('corPrimaria',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Cor de fundo da página</label>
+            <input type="color" class="campo__input" id="prop-cor-fundo" value="#f8f9fa" onchange="atualizarTema('corFundo',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Cor do cartão do formulário</label>
+            <input type="color" class="campo__input" id="prop-cor-card" value="#ffffff" onchange="atualizarTema('corCard',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Cor do texto</label>
+            <input type="color" class="campo__input" id="prop-cor-texto" value="#202124" onchange="atualizarTema('corTexto',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>Fonte</label>
+            <select class="campo__select" id="prop-fonte" onchange="atualizarTema('fonte',this.value)">
+              <option value="Inter">Inter (padrão)</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Open Sans">Open Sans</option>
+              <option value="Lato">Lato</option>
+              <option value="Poppins">Poppins</option>
+              <option value="Montserrat">Montserrat</option>
+            </select>
+          </div>
+          <div class="propriedades-campo">
+            <label>URL da Imagem de Cabeçalho</label>
+            <input type="url" class="campo__input" id="prop-img-cabecalho" placeholder="https://exemplo.com/imagem.jpg" onchange="atualizarTema('imagemCabecalho',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>URL da Imagem de Fundo (Página)</label>
+            <input type="url" class="campo__input" id="prop-img-fundo" placeholder="https://exemplo.com/fundo.jpg" onchange="atualizarTema('imagemFundo',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>URL da Imagem de Rodapé</label>
+            <input type="url" class="campo__input" id="prop-img-rodape" placeholder="https://exemplo.com/rodape.jpg" onchange="atualizarTema('imagemRodape',this.value)">
+          </div>
+          <div class="propriedades-campo">
+            <label>CSS personalizado</label>
+            <textarea class="campo__textarea" id="prop-css-extra" rows="5" placeholder="/* Estilos customizados */" onchange="atualizarTema('cssExtra',this.value)"></textarea>
+          </div>
+        </div>
+      </div>
+      <!-- Botões do builder -->
+      <div style="padding:12px;border-top:1px solid var(--cor-borda);display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn--ghost btn--sm" onclick="voltarLista()">&#8592; Voltar</button>
+        <button class="btn btn--primary btn--sm" id="btn-salvar" onclick="salvarFormulario()" style="flex:1;">Salvar</button>
+        <button class="btn btn--secondary btn--sm" id="btn-toggle-autosave" onclick="toggleAutoSave()" title="Auto-save"></button>
+        <button class="btn btn--success btn--sm" onclick="publicarFormulario()">&#128640; Publicar</button>
+      </div>
+      <!-- Badge alteracoes nao publicadas -->
+      <div id="badge-nao-publicado" style="display:none;padding:10px 12px;background:#fff3cd;border-top:1px solid #ffc107;font-size:.8rem;color:#856404;">
+        <span id="badge-nao-publicado-texto">⚠️ Existem alterações não publicadas</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Criar Novo Formulário -->
+<div id="modal-novo-form" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Novo Formulário</h3>
+      <button class="btn btn--ghost btn--sm" onclick="fecharModalNovoForm()" style="min-width:32px;padding:0;font-size:1.2rem;border:none;">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="campo" style="margin-bottom:0;">
+        <label class="campo__label" for="novo-form-titulo">Título do Formulário</label>
+        <input type="text" id="novo-form-titulo" class="campo__input" placeholder="Ex: Arraiá Caiçara 2026" onkeypress="if(event.key === 'Enter') confirmarCriarFormulario()">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn--ghost btn--sm" onclick="fecharModalNovoForm()">Cancelar</button>
+      <button class="btn btn--primary btn--sm" id="btn-confirmar-criar" onclick="confirmarCriarFormulario()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<?!= include('js-utils') ?>
+<script>
+/* ── Estado Global ───────────────────────────────────────── */
+let formularioAtual = null; // Dados do form em edição
+let secaoSelecionada = 0;
+let perguntaSelecionada = null;
+let autoSaveTimer = null;
+let autoSaveAtivo = localStorage.getItem('setur_autosave') !== 'false'; // persiste preferência
+const TIPOS_PERGUNTA = [
+  { tipo:'RESPOSTA_CURTA',     icone:'✏️', label:'Resposta curta' },
+  { tipo:'PARAGRAFO',          icone:'📝', label:'Parágrafo' },
+  { tipo:'MULTIPLA_ESCOLHA',   icone:'🔘', label:'Múltipla escolha' },
+  { tipo:'CAIXAS_SELECAO',     icone:'☑️', label:'Caixas de seleção' },
+  { tipo:'LISTA_SUSPENSA',     icone:'▼', label:'Lista suspensa' },
+  { tipo:'ESCALA_LINEAR',      icone:'📊', label:'Escala linear' },
+  { tipo:'AVALIACAO_ESTRELAS', icone:'⭐', label:'Avaliação com estrelas' },
+  { tipo:'SLIDER_NUMERICO',    icone:'🔢', label:'Slider numérico' },
+  { tipo:'DATA',               icone:'📅', label:'Data' },
+  { tipo:'HORA',               icone:'⏰', label:'Hora' },
+  { tipo:'DATA_HORA',          icone:'🗓️', label:'Data e hora' },
+  { tipo:'UPLOAD_ARQUIVO',     icone:'📎', label:'Upload de arquivo' },
+  { tipo:'ASSINATURA_CANVAS',  icone:'✍️', label:'Assinatura digital' },
+  { tipo:'GRADE_MULTIPLA',     icone:'🔲', label:'Grade (múltipla)' },
+  { tipo:'GRADE_CAIXAS',       icone:'☑️', label:'Grade (caixas)' },
+  { tipo:'SOMENTE_LEITURA',    icone:'📄', label:'Texto/HTML' },
+  { tipo:'ACEITE_TERMOS',      icone:'📋', label:'Aceite de termos' },
+];
+
+/* ── Boot ─────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', async () => {
+  if (Sessao.existe()) {
+    await iniciarPainel();
+  }
+  document.getElementById('input-senha').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fazerLogin();
+  });
+});
+
+/* ── Autenticação ─────────────────────────────────────────── */
+async function fazerLogin() {
+  const btn = document.getElementById('btn-login');
+  const senha = document.getElementById('input-senha').value;
+  if (!senha) { Toast.aviso('Digite a senha.'); return; }
+  Loading.show(btn, 'Entrando...');
+  const res = await API.call('login', { senha, fingerprint: Fingerprint.obter() });
+  Loading.hide(btn);
+  if (res.ok) {
+    Sessao.salvar(res.data.token);
+    await iniciarPainel();
+  } else {
+    const erroEl = document.getElementById('login-erro');
+    erroEl.textContent = res.error;
+    erroEl.style.display = '';
+  }
+}
+
+async function iniciarPainel() {
+  document.getElementById('tela-login').style.display = 'none';
+  document.getElementById('painel-admin').style.display = '';
+  renderizarTiposPergunta();
+  await carregarListaForms();
+}
+
+function paginaSair() {
+  API.call('logout', { token: Sessao.obter() });
+  Sessao.limpar();
+  location.reload();
+}
+
+function redirecionarParaLogin() {
+  Sessao.limpar();
+  formularioAtual = null;
+  secaoSelecionada = 0;
+  perguntaSelecionada = null;
+  clearTimeout(autoSaveTimer);
+  document.getElementById('painel-admin').style.display = 'none';
+  document.getElementById('tela-builder').style.display = 'none';
+  document.getElementById('tela-login').style.display = '';
+  document.getElementById('input-senha').value = '';
+  document.body.classList.remove('builder-active');
+  Toast.aviso('Sessão expirada. Faça login novamente.');
+}
+
+/* ── Lista de Formulários ────────────────────────────────── */
+let _todosForms = [];
+
+async function carregarListaForms() {
+  const res = await API.call('listarFormularios', { token: Sessao.obter() });
+  if (!res.ok) { Toast.erro(res.error); return; }
+  _todosForms = res.data || [];
+  atualizarMetricas(_todosForms);
+  aplicarFiltroOrdenacao();
+}
+
+function aplicarFiltroOrdenacao() {
+  const buscaEl = document.getElementById('busca-forms');
+  const ordEl = document.getElementById('ordenar-forms');
+  const statusEl = document.getElementById('filtro-status');
+  const termo = ((buscaEl && buscaEl.value) || '').trim().toLowerCase();
+  const ordem = (ordEl && ordEl.value) || 'recente';
+  const statusFiltro = (statusEl && statusEl.value) || '';
+
+  let lista = _todosForms.slice();
+
+  if (statusFiltro) {
+    lista = lista.filter(f => f.status === statusFiltro);
+  }
+  if (termo) {
+    lista = lista.filter(f =>
+      String(f.titulo || '').toLowerCase().includes(termo) ||
+      String(f.descricao || '').toLowerCase().includes(termo)
+    );
+  }
+
+  if (ordem === 'az') {
+    lista.sort((a, b) => String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR', { sensitivity: 'base' }));
+  } else if (ordem === 'respostas') {
+    lista.sort((a, b) => (parseInt(b.totalRespostas) || 0) - (parseInt(a.totalRespostas) || 0));
+  } else {
+    lista.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+  }
+
+  renderizarSidebar(lista);
+  if (lista.length === 0 && (termo || statusFiltro)) {
+    document.getElementById('lista-forms-container').innerHTML =
+      '<div class="estado-vazio"><div class="estado-vazio__icone">🔎</div><h3>Nenhum formulário encontrado</h3><p>Tente outro termo de busca ou status.</p></div>';
+  } else {
+    renderizarListaForms(lista);
+  }
+}
+
+function atualizarMetricas(forms) {
+  document.getElementById('met-total-forms').textContent = forms.length;
+  document.getElementById('met-ativos').textContent = forms.filter(f => f.status === 'ATIVO').length;
+  const totalResp = forms.reduce((s, f) => s + (parseInt(f.totalRespostas) || 0), 0);
+  document.getElementById('met-total-resp').textContent = Formato.numero(totalResp);
+  document.getElementById('met-hoje').textContent = '—';
+}
+
+function renderizarSidebar(forms) {
+  const lista = document.getElementById('sidebar-lista');
+  lista.innerHTML = '';
+  if (!forms.length) { lista.innerHTML = '<p style="padding:12px;font-size:.875rem;color:var(--cor-texto-soft);">Nenhum formulário</p>'; return; }
+  forms.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'form-item';
+    const statusClass = (f.status || '').toLowerCase();
+    item.innerHTML = `<span>${f.titulo}</span><span class="badge badge--${statusClass} form-item__badge"></span>`;
+    item.onclick = () => abrirBuilder(f.formId);
+    lista.appendChild(item);
+  });
+}
+
+function renderizarListaForms(forms) {
+  const container = document.getElementById('lista-forms-container');
+  if (!forms.length) {
+    container.innerHTML = '<div class="estado-vazio"><div class="estado-vazio__icone">📋</div><h3>Nenhum formulário ainda</h3><p>Clique em "+ Novo" para criar seu primeiro formulário.</p></div>';
+    return;
+  }
+  container.innerHTML = '';
+  forms.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'card-form';
+    const statusClass = (f.status || '').toLowerCase();
+    card.innerHTML = `
+      <div class="card-form__info">
+        <div class="card-form__titulo">${Utils.escapeHtml(f.titulo)}</div>
+        <div class="card-form__meta">
+          <span class="badge badge--${statusClass}">${f.status}</span>
+          · ${f.totalRespostas || 0} respostas
+          · Criado ${Formato.data(f.dataCriacao)}
+        </div>
+      </div>
+      <div class="card-form__acoes">
+        <button class="btn btn--sm btn--secondary" onclick="event.stopPropagation();abrirDashboardForm('${f.formId}')" title="Ver Dashboard">📊</button>
+        <button class="btn btn--sm btn--primary" onclick="event.stopPropagation();abrirBuilder('${f.formId}')">Editar</button>
+        <button class="btn btn--sm btn--danger" onclick="event.stopPropagation();excluirFormularioLista('${f.formId}', '${Utils.escapeHtml(f.titulo)}')" title="Excluir Formulário">🗑</button>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function novoFormulario() {
+  const input = document.getElementById('novo-form-titulo');
+  input.value = '';
+  document.getElementById('modal-novo-form').classList.add('ativo');
+  setTimeout(() => input.focus(), 150);
+}
+
+function fecharModalNovoForm() {
+  document.getElementById('modal-novo-form').classList.remove('ativo');
+}
+
+async function confirmarCriarFormulario() {
+  const input = document.getElementById('novo-form-titulo');
+  const titulo = input.value.trim();
+  if (!titulo) {
+    Toast.erro('O título do formulário é obrigatório.');
+    return;
+  }
+  
+  fecharModalNovoForm();
+  Toast.info('Criando formulário...');
+  
+  const res = await API.call('criarFormulario', {
+    token: Sessao.obter(),
+    dados: {
+      titulo: titulo,
+      descricao: '',
+      configJSON: {
+        secoes: [{ id: gerarId(), titulo: '', perguntas: [] }],
+        configuracoes: { mensagemConfirmacao: '<h3>Obrigado!</h3><p>Sua resposta foi registrada.</p>' },
+        logicaCondicional: [],
+      },
+      tema: { corPrimaria: '#1a73e8', fonte: 'Inter' },
+    }
+  });
+  if (res.ok) {
+    Toast.sucesso('Formulário criado com sucesso!');
+    await abrirBuilder(res.data.formId);
+  } else {
+    Toast.erro(res.error);
+  }
+}
+
+async function abrirBuilder(formId) {
+  const res = await API.call('obterFormulario', { token: Sessao.obter(), formId });
+  if (!res.ok) { Toast.erro(res.error); return; }
+  formularioAtual = res.data;
+  document.getElementById('tela-lista').style.display = 'none';
+  document.getElementById('tela-builder').style.display = 'grid';
+  document.getElementById('top-pag-nome').textContent = formularioAtual.titulo;
+  document.getElementById('builder-top-actions').style.display = 'flex';
+  document.body.classList.add('builder-active');
+  carregarDadosBuilder();
+  obterLinkDivulgacao();
+  _atualizarBotaoAutoSave();
+  _verificarAlteracoesNaoPublicadas();
+}
+
+function voltarLista() {
+  document.getElementById('tela-builder').style.display = 'none';
+  document.getElementById('tela-lista').style.display = '';
+  document.getElementById('builder-top-actions').style.display = 'none';
+  formularioAtual = null;
+  document.body.classList.remove('builder-active');
+  carregarListaForms();
+}
+
+function carregarDadosBuilder() {
+  if (!formularioAtual) return;
+  
+  // Parse configJSON
+  const cfg = typeof formularioAtual.configJSON === 'string'
+    ? JSON.parse(formularioAtual.configJSON)
+    : formularioAtual.configJSON;
+  formularioAtual.configJSON = cfg;
+  
+  // Parse tema
+  const tema = typeof formularioAtual.tema === 'string'
+    ? JSON.parse(formularioAtual.tema || '{}')
+    : (formularioAtual.tema || {});
+  formularioAtual.tema = tema;
+
+  document.getElementById('builder-titulo').value = formularioAtual.titulo;
+  // Carrega descricao no div contenteditable (rich text)
+  const descEl = document.getElementById('builder-descricao');
+  descEl.innerHTML = formularioAtual.descricao || '';
+  
+  document.getElementById('prop-status').value = formularioAtual.status || 'RASCUNHO';
+  document.getElementById('prop-limite').value = formularioAtual.limiteRespostas || 0;
+  document.getElementById('prop-data-inicio').value = formularioAtual.dataInicio || '';
+  document.getElementById('prop-data-limite').value = formularioAtual.dataLimite || '';
+  if (cfg.configuracoes) {
+    document.getElementById('prop-msg-conf').value = cfg.configuracoes.mensagemConfirmacao || '';
+    document.getElementById('prop-resp-unica').checked = !!cfg.configuracoes.respostaUnica;
+    document.getElementById('prop-notif').checked = !!cfg.configuracoes.notificarAdmin;
+    document.getElementById('prop-modo-prazo').value = cfg.configuracoes.modoExibicaoPrazo || (cfg.configuracoes.exibirBannerPrazo ? 'CONTAGEM' : 'OCULTO');
+    document.getElementById('prop-auto-promover-prazo').checked = cfg.configuracoes.autoPromoverPrazo !== false;
+    document.getElementById('prop-texto-banner-prazo').value = cfg.configuracoes.textoBannerPrazo || 'Prazo de encerramento:';
+    document.getElementById('prop-link-edital').value = cfg.configuracoes.linkEdital || '';
+    document.getElementById('prop-texto-link-edital').value = cfg.configuracoes.textoLinkEdital || '';
+    document.getElementById('prop-versao-form').value = cfg.configuracoes.versao || '';
+  }
+  
+  // Carregar dados de tema nos inputs
+  document.getElementById('prop-cor-primaria').value = tema.corPrimaria || '#1a73e8';
+  document.getElementById('prop-cor-fundo').value = tema.corFundo || '#f8f9fa';
+  document.getElementById('prop-cor-card').value = tema.corCard || '#ffffff';
+  document.getElementById('prop-cor-texto').value = tema.corTexto || '#202124';
+  document.getElementById('prop-fonte').value = tema.fonte || 'Inter';
+  document.getElementById('prop-img-cabecalho').value = tema.imagemCabecalho || '';
+  document.getElementById('prop-img-fundo').value = tema.imagemFundo || '';
+  document.getElementById('prop-img-rodape').value = tema.imagemRodape || '';
+  document.getElementById('prop-css-extra').value = tema.cssExtra || '';
+
+  renderizarSecoes();
+}
+
+function renderizarTiposPergunta() {
+  const painel = document.getElementById('painel-tipos');
+  painel.innerHTML = '';
+  TIPOS_PERGUNTA.forEach(tp => {
+    const btn = document.createElement('button');
+    btn.className = 'tipo-pergunta-btn';
+    btn.innerHTML = `${tp.icone} <span>${tp.label}</span>`;
+    btn.onclick = () => adicionarPergunta(tp.tipo);
+    painel.appendChild(btn);
+  });
+}
+
+function renderizarSecoes() {
+  const cfg = formularioAtual.configJSON;
+  if (secaoSelecionada >= cfg.secoes.length) {
+    secaoSelecionada = cfg.secoes.length - 1;
+  }
+  if (secaoSelecionada < 0) {
+    secaoSelecionada = 0;
+  }
+  
+  const container = document.getElementById('builder-secoes');
+  container.innerHTML = '';
+  (cfg.secoes || []).forEach((secao, secaoIdx) => {
+    const secaoEl = document.createElement('div');
+    secaoEl.className = 'secao-builder' + (secaoIdx === secaoSelecionada ? ' ativa' : '');
+    secaoEl.innerHTML = `
+      <div class="secao-builder__header" onclick="toggleSecao(this)">
+        <span>📑</span>
+        <input type="text" value="${Utils.escapeHtml(secao.titulo || 'Seção ' + (secaoIdx + 1))}"
+               style="flex:1;border:none;background:none;font-weight:600;font-size:.9rem;font-family:var(--fonte);outline:none;"
+               oninput="atualizarTituloSecao(${secaoIdx}, this.value)">
+        <button class="btn btn--ghost btn--sm" onclick="event.stopPropagation();removerSecao(${secaoIdx})">✖</button>
+      </div>
+      <div class="secao-builder__body" id="secao-body-${secaoIdx}">
+        <div id="perguntas-${secaoIdx}"></div>
+        <div class="drag-drop-zone" onclick="secaoSelecionada=${secaoIdx};adicionarPergunta('RESPOSTA_CURTA')" style="margin-top:8px;">+ Adicionar pergunta aqui</div>
+      </div>`;
+
+    // Configurar drop na seção
+    secaoEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    secaoEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        const destPCount = cfg.secoes[secaoIdx].perguntas.length;
+        if (data.secaoIdx !== secaoIdx || data.pIdx !== destPCount - 1) {
+          moverPergunta(data.secaoIdx, data.pIdx, secaoIdx, null);
+        }
+      } catch(err) {
+        console.error(err);
+      }
+    });
+
+    container.appendChild(secaoEl);
+    const pContainer = secaoEl.querySelector(`#perguntas-${secaoIdx}`);
+    (secao.perguntas || []).forEach((p, pIdx) => pContainer.appendChild(criarItemPergunta(p, secaoIdx, pIdx)));
+  });
+}
+
+function criarItemPergunta(p, secaoIdx, pIdx) {
+  const div = document.createElement('div');
+  div.className = 'pergunta-item';
+  div.dataset.secaoIdx = secaoIdx;
+  div.dataset.pIdx = pIdx;
+  div.setAttribute('draggable', 'true');
+  
+  const tipo = TIPOS_PERGUNTA.find(t => t.tipo === p.tipo);
+  div.innerHTML = `
+    <div class="pergunta-item__header">
+      <span class="pergunta-item__drag" title="Arrastar">⠿</span>
+      <span class="pergunta-item__titulo">${p.titulo || 'Sem título'}</span>
+      <span class="pergunta-item__tipo">${tipo ? tipo.icone + ' ' + tipo.label : p.tipo}</span>
+      <div class="pergunta-item__acoes">
+        ${p.obrigatoria ? '<span title="Obrigatória">🔴</span>' : ''}
+        <button class="btn btn--ghost btn--sm" onclick="event.stopPropagation();duplicarPergunta(${secaoIdx},${pIdx})" title="Duplicar">⧉</button>
+        <button class="btn btn--ghost btn--sm" onclick="event.stopPropagation();removerPergunta(${secaoIdx},${pIdx})" title="Remover">🗑</button>
+      </div>
+    </div>`;
+
+  // Ouvintes de Drag & Drop
+  div.addEventListener('dragstart', (e) => {
+    e.stopPropagation();
+    e.dataTransfer.setData('text/plain', JSON.stringify({ secaoIdx, pIdx }));
+    e.dataTransfer.effectAllowed = 'move';
+    div.classList.add('dragging');
+  });
+
+  div.addEventListener('dragend', () => {
+    div.classList.remove('dragging');
+  });
+
+  div.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    div.classList.add('drag-over');
+  });
+
+  div.addEventListener('dragleave', () => {
+    div.classList.remove('drag-over');
+  });
+
+  div.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    div.classList.remove('drag-over');
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      moverPergunta(data.secaoIdx, data.pIdx, secaoIdx, pIdx);
+    } catch(err) {
+      console.error(err);
+    }
+  });
+
+  div.onclick = () => selecionarPergunta(secaoIdx, pIdx, div);
+  return div;
+}
+
+function selecionarPergunta(secaoIdx, pIdx, el) {
+  secaoSelecionada = secaoIdx;
+  document.querySelectorAll('.secao-builder').forEach((s, idx) => {
+    s.classList.toggle('ativa', idx === secaoIdx);
+  });
+  
+  document.querySelectorAll('.pergunta-item.selecionada').forEach(e => e.classList.remove('selecionada'));
+  el.classList.add('selecionada');
+  perguntaSelecionada = { secaoIdx, pIdx };
+  renderizarPropriedadesPergunta(secaoIdx, pIdx);
+  mudarTab('pergunta');
+}
+
+function renderizarPropriedadesPergunta(secaoIdx, pIdx) {
+  const p = formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx];
+  const container = document.getElementById('tab-pergunta');
+  container.innerHTML = `
+    <div class="propriedades-campo">
+      <label>Tipo da pergunta</label>
+      <select class="campo__select" onchange="alterarTipoPergunta(this.value)">
+        ${TIPOS_PERGUNTA.map(t => `<option value="${t.tipo}" ${p.tipo === t.tipo ? 'selected' : ''}>${t.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="propriedades-campo">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label>Título da pergunta</label>
+        <div class="toolbar-formatacao">
+          <button type="button" onclick="formatarTexto('prop-pergunta-titulo', 'b')" title="Negrito"><b>B</b></button>
+          <button type="button" onclick="formatarTexto('prop-pergunta-titulo', 'i')" title="Itálico"><i>I</i></button>
+          <button type="button" onclick="formatarTexto('prop-pergunta-titulo', 'u')" title="Sublinhado"><u>U</u></button>
+        </div>
+      </div>
+      <input type="text" id="prop-pergunta-titulo" class="campo__input" value="${Utils.escapeHtml(p.titulo || '')}" oninput="atualizarProp('titulo',this.value)">
+    </div>
+    <div class="propriedades-campo">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label>Descrição/dica (opcional)</label>
+        <div class="toolbar-formatacao">
+          <button type="button" onclick="formatarTexto('prop-pergunta-desc', 'b')" title="Negrito"><b>B</b></button>
+          <button type="button" onclick="formatarTexto('prop-pergunta-desc', 'i')" title="Itálico"><i>I</i></button>
+          <button type="button" onclick="formatarTexto('prop-pergunta-desc', 'u')" title="Sublinhado"><u>U</u></button>
+        </div>
+      </div>
+      <input type="text" id="prop-pergunta-desc" class="campo__input" value="${Utils.escapeHtml(p.descricao || '')}" oninput="atualizarProp('descricao',this.value)">
+    </div>
+    <div class="toggle-wrap">
+      <label style="font-size:.875rem;font-weight:500;">Obrigatória</label>
+      <label class="toggle"><input type="checkbox" ${p.obrigatoria?'checked':''} onchange="atualizarProp('obrigatoria',this.checked)"><span class="toggle-slider"></span></label>
+    </div>
+    ${renderizarPropsTipo(p)}`;
+}
+
+function renderizarPropsTipo(p) {
+  switch(p.tipo) {
+    case 'RESPOSTA_CURTA': return `
+      <div class="propriedades-campo">
+        <label>Tipo de validação</label>
+        <select class="campo__select" onchange="atualizarPropAninhada('validacao','tipo',this.value)">
+          ${['LIVRE','EMAIL','TELEFONE','CPF','CNPJ','CEP','NUMERO','REGEX'].map(v =>
+            `<option value="${v}" ${(p.validacao&&p.validacao.tipo===v)?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>`;
+    case 'MULTIPLA_ESCOLHA':
+    case 'CAIXAS_SELECAO':
+    case 'LISTA_SUSPENSA':
+      return renderizarEditorOpcoes(p);
+    case 'ESCALA_LINEAR': return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" class="propriedades-campo">
+        <div><label>Mín</label><input type="number" class="campo__input" value="${p.config&&p.config.min||1}" onchange="atualizarPropAninhada('config','min',parseInt(this.value))"></div>
+        <div><label>Máx</label><input type="number" class="campo__input" value="${p.config&&p.config.max||5}" onchange="atualizarPropAninhada('config','max',parseInt(this.value))"></div>
+        <div><label>Label mín</label><input type="text" class="campo__input" value="${p.config&&p.config.labelMin||''}" oninput="atualizarPropAninhada('config','labelMin',this.value)"></div>
+        <div><label>Label máx</label><input type="text" class="campo__input" value="${p.config&&p.config.labelMax||''}" oninput="atualizarPropAninhada('config','labelMax',this.value)"></div>
+      </div>`;
+    case 'SLIDER_NUMERICO': return `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;" class="propriedades-campo">
+        <div><label>Mín</label><input type="number" class="campo__input" value="${p.config&&p.config.min||0}" onchange="atualizarPropAninhada('config','min',parseInt(this.value))"></div>
+        <div><label>Máx</label><input type="number" class="campo__input" value="${p.config&&p.config.max||100}" onchange="atualizarPropAninhada('config','max',parseInt(this.value))"></div>
+        <div><label>Passo</label><input type="number" class="campo__input" value="${p.config&&p.config.step||1}" onchange="atualizarPropAninhada('config','step',parseInt(this.value))"></div>
+      </div>`;
+    case 'UPLOAD_ARQUIVO': {
+      const formatos = (p.config && p.config.formatosAceitos) || [];
+      const grupos = [
+        { label: 'Imagens (JPG, PNG, GIF, WEBP)', exts: ['jpg','jpeg','png','gif','webp'] },
+        { label: 'PDF', exts: ['pdf'] },
+        { label: 'Word (DOC, DOCX)', exts: ['doc','docx'] },
+        { label: 'Excel (XLS, XLSX)', exts: ['xls','xlsx'] },
+        { label: 'PowerPoint (PPT, PPTX)', exts: ['ppt','pptx'] },
+        { label: 'Texto (TXT, CSV)', exts: ['txt','csv'] },
+      ];
+      return `
+      <div class="propriedades-campo">
+        <label>Tamanho máximo (MB)</label>
+        <input type="number" class="campo__input" value="${p.config&&p.config.tamanhoMaxMB||10}" onchange="atualizarPropAninhada('config','tamanhoMaxMB',parseInt(this.value))">
+      </div>
+      <div class="propriedades-campo">
+        <label>Formatos aceitos</label>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+          ${grupos.map(g => `
+            <label style="font-size:.8rem;font-weight:normal;display:flex;align-items:center;gap:6px;">
+              <input type="checkbox"
+                ${g.exts.some(e => formatos.includes(e)) ? 'checked' : ''}
+                onchange="_toggleFormatosUpload(${JSON.stringify(g.exts)}, this.checked)">
+              ${g.label}
+            </label>`).join('')}
+        </div>
+        <input type="text" class="campo__input" style="margin-top:8px;" placeholder="Outros (ex: mp4,zip)" value="${formatos.filter(e => !['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv'].includes(e)).join(',')}" oninput="_setFormatosCustom(this.value)">
+        <p style="font-size:.7rem;color:var(--cor-texto-soft);margin-top:4px;">Deixe todos desmarcados para aceitar qualquer formato.</p>
+      </div>`;
+    }
+    case 'PARAGRAFO': return `
+      <div class="propriedades-campo">
+        <label>Limite de caracteres (0 = ilimitado)</label>
+        <input type="number" class="campo__input" value="${p.config&&p.config.limiteCaracteres||0}" onchange="atualizarPropAninhada('config','limiteCaracteres',parseInt(this.value)||0)">
+      </div>`;
+    case 'ACEITE_TERMOS': return `
+      <div class="propriedades-campo">
+        <label>Texto dos termos</label>
+        <textarea class="campo__textarea" rows="6" placeholder="Cole aqui o texto completo dos termos de uso..." onchange="atualizarPropAninhada('config','textoTermos',this.value)">${p.config&&p.config.textoTermos||''}</textarea>
+      </div>
+      <div class="propriedades-campo">
+        <label>Rótulo do checkbox</label>
+        <input type="text" class="campo__input" value="${p.config&&p.config.labelAceite||'Li e aceito os termos acima'}" onchange="atualizarPropAninhada('config','labelAceite',this.value)">
+      </div>
+      <p style="font-size:.75rem;color:var(--cor-texto-soft);">Este campo é sempre obrigatório.</p>`;
+    default: return '';
+  }
+}
+
+function renderizarEditorOpcoes(p) {
+  const opcoes = p.opcoes || [];
+  const permitirOutro = p.config && p.config.permitirOutro;
+  const showOutrosToggle = ['MULTIPLA_ESCOLHA', 'CAIXAS_SELECAO'].includes(p.tipo);
+  
+  return `
+    <div class="propriedades-campo">
+      <label>Opções</label>
+      <div id="lista-opcoes">
+        ${opcoes.map((op, i) => `
+          <div class="opcao-lista-item">
+            <input type="text" class="campo__input" value="${Utils.escapeHtml(op)}" oninput="atualizarOpcao(${i},this.value)">
+            <button class="btn btn--ghost btn--sm" onclick="removerOpcao(${i})">✖</button>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:8px; align-items:center;">
+        <button class="btn btn--secondary btn--sm" onclick="adicionarOpcao()">+ Adicionar opção</button>
+        ${showOutrosToggle ? `
+          <div class="toggle-wrap" style="margin: 0; gap: 8px;">
+            <span style="font-size:.8125rem; font-weight:500; color:var(--cor-texto-soft);">Opção 'Outros'</span>
+            <label class="toggle">
+              <input type="checkbox" ${permitirOutro ? 'checked' : ''} onchange="atualizarPropAninhada('config', 'permitirOutro', this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        ` : ''}
+      </div>
+    </div>`;
+}
+
+/* ── Ações do Builder ─────────────────────────────────────── */
+function adicionarPergunta(tipo) {
+  if (!formularioAtual) return;
+  const tipoInfo = TIPOS_PERGUNTA.find(t => t.tipo === tipo);
+  const nova = {
+    id: gerarId(),
+    tipo,
+    titulo: (tipoInfo ? tipoInfo.label : tipo),
+    descricao: '',
+    obrigatoria: false,
+    opcoes: ['MULTIPLA_ESCOLHA','CAIXAS_SELECAO','LISTA_SUSPENSA'].includes(tipo) ? ['Opção 1','Opção 2'] : undefined,
+    config: {},
+    validacao: tipo === 'RESPOSTA_CURTA' ? { tipo: 'LIVRE' } : undefined,
+  };
+  formularioAtual.configJSON.secoes[secaoSelecionada].perguntas.push(nova);
+  renderizarSecoes();
+  debounceAutoSave();
+}
+
+function adicionarSecao() {
+  if (!formularioAtual) return;
+  formularioAtual.configJSON.secoes.push({ id: gerarId(), titulo: '', perguntas: [] });
+  renderizarSecoes();
+}
+
+function removerSecao(idx) {
+  if (!confirm('Remover esta seção e todas as suas perguntas?')) return;
+  formularioAtual.configJSON.secoes.splice(idx, 1);
+  if (!formularioAtual.configJSON.secoes.length) {
+    formularioAtual.configJSON.secoes.push({ id: gerarId(), titulo: '', perguntas: [] });
+  }
+  renderizarSecoes();
+  debounceAutoSave();
+}
+
+function removerPergunta(secaoIdx, pIdx) {
+  formularioAtual.configJSON.secoes[secaoIdx].perguntas.splice(pIdx, 1);
+  perguntaSelecionada = null;
+  document.getElementById('tab-pergunta').innerHTML = '<p style="color:var(--cor-texto-soft);font-size:.875rem;">Clique em uma pergunta para editar.</p>';
+  renderizarSecoes();
+  debounceAutoSave();
+}
+
+function duplicarPergunta(secaoIdx, pIdx) {
+  const original = formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx];
+  const copia = JSON.parse(JSON.stringify(original));
+  copia.id = gerarId();
+  copia.titulo = '(Cópia) ' + copia.titulo;
+  formularioAtual.configJSON.secoes[secaoIdx].perguntas.splice(pIdx + 1, 0, copia);
+  renderizarSecoes();
+  debounceAutoSave();
+}
+
+function atualizarProp(campo, valor) {
+  if (!perguntaSelecionada) return;
+  const { secaoIdx, pIdx } = perguntaSelecionada;
+  formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx][campo] = valor;
+  renderizarSecoes();
+  debounceAutoSave();
+}
+
+function atualizarPropAninhada(grupo, campo, valor) {
+  if (!perguntaSelecionada) return;
+  const { secaoIdx, pIdx } = perguntaSelecionada;
+  const p = formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx];
+  if (!p[grupo]) p[grupo] = {};
+  p[grupo][campo] = valor;
+  debounceAutoSave();
+}
+
+function atualizarOpcao(idx, valor) {
+  if (!perguntaSelecionada) return;
+  const { secaoIdx, pIdx } = perguntaSelecionada;
+  formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx].opcoes[idx] = valor;
+  debounceAutoSave();
+}
+
+function adicionarOpcao() {
+  if (!perguntaSelecionada) return;
+  const { secaoIdx, pIdx } = perguntaSelecionada;
+  const p = formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx];
+  if (!p.opcoes) p.opcoes = [];
+  p.opcoes.push('Opção ' + (p.opcoes.length + 1));
+  renderizarPropriedadesPergunta(secaoIdx, pIdx);
+  debounceAutoSave();
+}
+
+function removerOpcao(idx) {
+  if (!perguntaSelecionada) return;
+  const { secaoIdx, pIdx } = perguntaSelecionada;
+  formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx].opcoes.splice(idx, 1);
+  renderizarPropriedadesPergunta(secaoIdx, pIdx);
+  debounceAutoSave();
+}
+
+function atualizarTituloSecao(idx, valor) {
+  formularioAtual.configJSON.secoes[idx].titulo = valor;
+  debounceAutoSave();
+}
+
+function salvarPropriedadeForm(campo, valor) {
+  if (!formularioAtual) return;
+  if (campo === 'mensagemConfirmacao' || campo === 'respostaUnica' || campo === 'notificarAdmin') {
+    if (!formularioAtual.configJSON.configuracoes) formularioAtual.configJSON.configuracoes = {};
+    formularioAtual.configJSON.configuracoes[campo] = valor;
+    if (campo === 'notificarAdmin') {
+      formularioAtual.configJSON.configuracoes.modoNotificacao = valor ? 'CADA_RESPOSTA' : 'DESATIVADO';
+    }
+  } else {
+    formularioAtual[campo] = valor;
+  }
+  debounceAutoSave();
+}
+
+function atualizarTema(campo, valor) {
+  if (!formularioAtual) return;
+  if (!formularioAtual.tema) formularioAtual.tema = {};
+  formularioAtual.tema[campo] = valor;
+  debounceAutoSave();
+}
+
+/* ── Salvar ───────────────────────────────────────────────── */
+function debounceAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(salvarFormulario, 2000);
+}
+
+async function salvarFormulario() {
+  if (!formularioAtual) return;
+  const btn = document.getElementById('btn-salvar');
+  btn.textContent = '⏳ Salvando...';
+  btn.disabled = true;
+  const atualizacoes = {
+    titulo: document.getElementById('builder-titulo').value || 'Sem título',
+    // Ler descrição do div contenteditable (rich text)
+    descricao: document.getElementById('builder-descricao').innerHTML || '',
+    configJSON: formularioAtual.configJSON,
+    tema: formularioAtual.tema || {},
+    limiteRespostas: formularioAtual.limiteRespostas,
+    dataInicio: formularioAtual.dataInicio || '',
+    dataLimite: formularioAtual.dataLimite || '',
+  };
+  const res = await API.call('editarFormulario', {
+    token: Sessao.obter(),
+    formId: formularioAtual.formId,
+    atualizacoes,
+  });
+  if (res.ok) {
+    formularioAtual = { ...formularioAtual, ...atualizacoes };
+    if (res.data && res.data.formIdAlterado) {
+      formularioAtual.formId = res.data.formId;
+      // Atualiza a URL na barra de endereços sem recarregar!
+      const novaUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=admin&form=' + res.data.formId;
+      window.history.replaceState({ path: novaUrl }, '', novaUrl);
+      // Recarregar link de divulgação
+      obterLinkDivulgacao();
+    }
+    document.getElementById('top-pag-nome').textContent = atualizacoes.titulo;
+    btn.textContent = '✓ Salvo';
+    setTimeout(() => { btn.textContent = 'Salvar'; btn.disabled = false; }, 1500);
+    // Verificar se agora existem alterações não publicadas
+    _verificarAlteracoesNaoPublicadas();
+  } else {
+    Toast.erro('Falha ao salvar: ' + res.error);
+    btn.textContent = 'Salvar';
+    btn.disabled = false;
+  }
+}
+
+async function publicarFormulario() {
+  if (!formularioAtual) return;
+  // Salva primeiro o rascunho
+  await salvarFormulario();
+  // Chama a nova API que copia draft → publicado e ativa o status
+  const res = await API.call('publicarFormulario', {
+    token: Sessao.obter(), formId: formularioAtual.formId
+  });
+  if (res.ok) {
+    formularioAtual.status = 'ATIVO';
+    document.getElementById('prop-status').value = 'ATIVO';
+    document.getElementById('badge-nao-publicado').style.display = 'none';
+    Toast.sucesso('🚀 Formulário publicado! Respondentes já vêem a nova versão.');
+  } else {
+    Toast.erro(res.error);
+  }
+}
+
+/* ── Helpers de Auto-save e Badge ───────────────────────────── */
+
+function toggleAutoSave() {
+  autoSaveAtivo = !autoSaveAtivo;
+  localStorage.setItem('setur_autosave', autoSaveAtivo ? 'true' : 'false');
+  _atualizarBotaoAutoSave();
+  Toast.info('Auto-save ' + (autoSaveAtivo ? 'ativado' : 'desativado'));
+}
+
+function _atualizarBotaoAutoSave() {
+  const btn = document.getElementById('btn-toggle-autosave');
+  if (!btn) return;
+  btn.textContent = autoSaveAtivo ? '⏱ Auto ON' : '⏱ Auto OFF';
+  btn.style.opacity = autoSaveAtivo ? '1' : '0.5';
+}
+
+async function _verificarAlteracoesNaoPublicadas() {
+  if (!formularioAtual) return;
+  const badge = document.getElementById('badge-nao-publicado');
+  if (!badge) return;
+  try {
+    const res = await API.call('obterEstadoPublicacao', {
+      token: Sessao.obter(), formId: formularioAtual.formId
+    });
+    if (res.ok && res.data && res.data.hasDiff) {
+      const resumo = (res.data.resumo || []).join(' • ');
+      document.getElementById('badge-nao-publicado-texto').textContent =
+        '⚠️ Alterações não publicadas' + (resumo ? ': ' + resumo : '');
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (e) {
+    // silencioso: badge não é crítico
+  }
+}
+
+async function alterarStatusFormulario(novoStatus) {
+  if (!formularioAtual) return;
+  const res = await API.call('alterarStatus', {
+    token: Sessao.obter(), formId: formularioAtual.formId, status: novoStatus
+  });
+  if (res.ok) {
+    formularioAtual.status = novoStatus;
+    Toast.sucesso('Status alterado para ' + novoStatus);
+  } else {
+    Toast.erro(res.error);
+    // Reverter dropdown
+    document.getElementById('prop-status').value = formularioAtual.status || 'RASCUNHO';
+  }
+}
+
+function salvarPropriedadeConfigJSON(campo, valor) {
+  if (!formularioAtual) return;
+  if (!formularioAtual.configJSON) formularioAtual.configJSON = {};
+  if (!formularioAtual.configJSON.configuracoes) formularioAtual.configJSON.configuracoes = {};
+  formularioAtual.configJSON.configuracoes[campo] = valor;
+  debounceAutoSave();
+}
+
+/* ── Rich Text Editor ─────────────────────────────────────── */
+
+function execFormatacao(comando) {
+  document.getElementById('builder-descricao').focus();
+  document.execCommand(comando, false, null);
+  debounceAutoSave();
+}
+
+function inserirLinkDescricao() {
+  const url = prompt('URL do link:');
+  if (url) {
+    document.getElementById('builder-descricao').focus();
+    document.execCommand('createLink', false, url);
+    // Garantir que o link abra em nova aba
+    const links = document.getElementById('builder-descricao').querySelectorAll('a:not([target])');
+    links.forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer'; });
+    debounceAutoSave();
+  }
+}
+
+/* ── Helpers de Upload Formatos ────────────────────────────── */
+
+function _toggleFormatosUpload(exts, ativo) {
+  if (!perguntaSelecionada) return;
+  const p = formularioAtual.configJSON.secoes[perguntaSelecionada.secaoIdx].perguntas[perguntaSelecionada.pIdx];
+  if (!p.config) p.config = {};
+  let formatos = p.config.formatosAceitos || [];
+  if (ativo) {
+    exts.forEach(e => { if (!formatos.includes(e)) formatos.push(e); });
+  } else {
+    formatos = formatos.filter(e => !exts.includes(e));
+  }
+  p.config.formatosAceitos = formatos;
+  debounceAutoSave();
+}
+
+function _setFormatosCustom(valor) {
+  if (!perguntaSelecionada) return;
+  const p = formularioAtual.configJSON.secoes[perguntaSelecionada.secaoIdx].perguntas[perguntaSelecionada.pIdx];
+  if (!p.config) p.config = {};
+  const existentes = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv'];
+  const formatos = (p.config.formatosAceitos || []).filter(e => existentes.includes(e));
+  const custom = valor.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  p.config.formatosAceitos = [...formatos, ...custom];
+  debounceAutoSave();
+}
+
+async function duplicarFormAtual() {
+  if (!formularioAtual) return;
+  const res = await API.call('duplicarFormulario', { token: Sessao.obter(), formId: formularioAtual.formId });
+  if (res.ok) { Toast.sucesso('Formulário duplicado!'); await abrirBuilder(res.data.formId); }
+  else Toast.erro(res.error);
+}
+
+async function excluirFormAtual() {
+  if (!formularioAtual) return;
+  if (!confirm('Tem certeza? Esta ação não pode ser desfeita.\n\nEscreva "CONFIRMAR" para excluir.')) return;
+  const confirmacao = prompt('Digite "CONFIRMAR" para excluir permanentemente:');
+  if (confirmacao !== 'CONFIRMAR') { Toast.aviso('Operação cancelada.'); return; }
+  const res = await API.call('excluirFormulario', { token: Sessao.obter(), formId: formularioAtual.formId });
+  if (res.ok) { Toast.sucesso('Formulário excluído.'); voltarLista(); }
+  else Toast.erro(res.error);
+}
+
+async function excluirFormularioLista(formId, titulo) {
+  if (!confirm(`Tem certeza que deseja excluir o formulário "${titulo}"?\nEsta ação não pode ser desfeita.`)) return;
+  const confirmacao = prompt('Digite "CONFIRMAR" para excluir permanentemente:');
+  if (confirmacao !== 'CONFIRMAR') { Toast.aviso('Operação cancelada.'); return; }
+  const res = await API.call('excluirFormulario', { token: Sessao.obter(), formId });
+  if (res.ok) {
+    Toast.sucesso('Formulário excluído.');
+    await carregarListaForms();
+  } else {
+    Toast.erro(res.error);
+  }
+}
+
+async function copiarLink() {
+  const urlsRes = await API.call('obterUrls', { token: Sessao.obter() });
+  if (!urlsRes.ok) return;
+  const url = urlsRes.data.webApp + '?form=' + formularioAtual.formId;
+  const ok = await Utils.copiar(url);
+  Toast.sucesso(ok ? 'Link copiado!' : 'Link: ' + url);
+}
+
+async function copiarLinkCurto(btn) {
+  if (!formularioAtual) return;
+  const txtOrig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Encurtando...'; }
+  const res = await API.call('gerarLinkCurto', { token: Sessao.obter(), formId: formularioAtual.formId });
+  if (btn) { btn.disabled = false; btn.textContent = txtOrig; }
+  if (!res.ok) { Toast.erro(res.error || 'Falha ao gerar link curto.'); return; }
+  const ok = await Utils.copiar(res.data.url);
+  if (res.data.encurtado) {
+    Toast.sucesso(ok ? 'Link curto copiado: ' + res.data.url : res.data.url);
+  } else {
+    Toast.aviso(ok ? 'Encurtador indisponível agora — copiei o link completo.' : res.data.url);
+  }
+}
+
+async function copiarIncorporacao() {
+  if (!formularioAtual) return;
+  const urlsRes = await API.call('obterUrls', { token: Sessao.obter() });
+  if (!urlsRes.ok) { Toast.erro('Falha ao obter a URL.'); return; }
+  const fid = formularioAtual.formId;
+  const src = urlsRes.data.webApp + '?form=' + fid;
+  const ABRE = '<' + 'script>';
+  const FECHA = '<' + '/script>';
+  const code =
+    '<iframe id="setur-form-' + fid + '" src="' + src + '" title="Formulario SETUR" ' +
+    'style="width:100%;border:0;min-height:600px;" scrolling="no"></iframe>\n' +
+    ABRE + '\n' +
+    '(function(){\n' +
+    '  window.addEventListener("message", function(ev){\n' +
+    '    var d = ev.data;\n' +
+    '    if (d && d.seturForm && d.formId === "' + fid + '") {\n' +
+    '      var f = document.getElementById("setur-form-' + fid + '");\n' +
+    '      if (!f) return;\n' +
+    '      if (d.height) f.style.height = (d.height + 24) + "px";\n' +
+    '      if (d.action === "scrollToTop") f.scrollIntoView({ behavior: "smooth" });\n' +
+    '    }\n' +
+    '  });\n' +
+    '})();\n' +
+    FECHA;
+  const ok = await Utils.copiar(code);
+  Toast.sucesso(ok ? 'Código de incorporação copiado! Cole no HTML do seu site.' : 'Não consegui copiar automaticamente.');
+}
+
+async function obterLinkDivulgacao() {
+  if (!formularioAtual) return;
+  const linkInput = document.getElementById('prop-link-divulgacao');
+  if (linkInput) linkInput.value = 'Carregando...';
+  const urlsRes = await API.call('obterUrls', { token: Sessao.obter() });
+  if (urlsRes.ok && linkInput) {
+    linkInput.value = urlsRes.data.webApp + '?form=' + formularioAtual.formId;
+  } else if (linkInput) {
+    linkInput.value = 'Erro ao obter link.';
+  }
+}
+
+async function visualizarFormAtual() {
+  if (!formularioAtual) return;
+  const urlsRes = await API.call('obterUrls', { token: Sessao.obter() });
+  if (!urlsRes.ok) return;
+  const url = urlsRes.data.webApp + '?form=' + formularioAtual.formId;
+  window.open(url, '_blank');
+}
+
+async function abrirDashboard() {
+  if (!formularioAtual) return;
+  abrirDashboardForm(formularioAtual.formId);
+}
+
+async function abrirDashboardForm(formId) {
+  const token = Sessao.obter();
+  const urlsRes = await API.call('obterUrls', { token });
+  if (!urlsRes.ok) return;
+  window.open(urlsRes.data.webApp + '?page=dash&form=' + formId + '&token=' + token, '_blank');
+}
+
+/* ── UI Helpers ───────────────────────────────────────────── */
+function mudarTab(nome) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const nomes = ['pergunta','form','tema'];
+    t.classList.toggle('ativa', nomes[i] === nome);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativa'));
+  const tabEl = document.getElementById('tab-' + nome);
+  if (tabEl) tabEl.classList.add('ativa');
+}
+
+function toggleSecao(headerEl) {
+  const body = headerEl.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? '' : 'none';
+  
+  // Selecionar a seção correspondente
+  const secoesEls = [...document.querySelectorAll('.secao-builder')];
+  const secaoBuilder = headerEl.closest('.secao-builder');
+  const secaoIdx = secoesEls.indexOf(secaoBuilder);
+  if (secaoIdx >= 0) {
+    secaoSelecionada = secaoIdx;
+    document.querySelectorAll('.secao-builder').forEach((s, idx) => {
+      s.classList.toggle('ativa', idx === secaoIdx);
+    });
+  }
+}
+
+function alterarTipoPergunta(novoTipo) {
+  if (!perguntaSelecionada) return;
+  const { secaoIdx, pIdx } = perguntaSelecionada;
+  const p = formularioAtual.configJSON.secoes[secaoIdx].perguntas[pIdx];
+  p.tipo = novoTipo;
+  
+  // Inicializa opções/configurações específicas
+  if (['MULTIPLA_ESCOLHA','CAIXAS_SELECAO','LISTA_SUSPENSA'].includes(novoTipo)) {
+    if (!p.opcoes || p.opcoes.length === 0) {
+      p.opcoes = ['Opção 1', 'Opção 2'];
+    }
+  }
+  
+  if (novoTipo === 'RESPOSTA_CURTA' && !p.validacao) {
+    p.validacao = { tipo: 'LIVRE' };
+  }
+  
+  renderizarSecoes();
+  renderizarPropriedadesPergunta(secaoIdx, pIdx);
+  
+  // Remarcar o item selecionado
+  const pEl = document.querySelector(`#perguntas-${secaoIdx} .pergunta-item:nth-child(${pIdx + 1})`);
+  if (pEl) pEl.classList.add('selecionada');
+  
+  debounceAutoSave();
+}
+
+function moverPergunta(srcSecaoIdx, srcPIdx, destSecaoIdx, destPIdx) {
+  const cfg = formularioAtual.configJSON;
+  const pergunta = cfg.secoes[srcSecaoIdx].perguntas[srcPIdx];
+  
+  // Remove da origem
+  cfg.secoes[srcSecaoIdx].perguntas.splice(srcPIdx, 1);
+  
+  // Insere no destino
+  if (destPIdx === null) {
+    cfg.secoes[destSecaoIdx].perguntas.push(pergunta);
+  } else {
+    cfg.secoes[destSecaoIdx].perguntas.splice(destPIdx, 0, pergunta);
+  }
+  
+  renderizarSecoes();
+  debounceAutoSave();
+}
+
+function formatarTexto(inputId, tag) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const text = el.value;
+  const selectedText = text.substring(start, end);
+  const replacement = `<${tag}>${selectedText}</${tag}>`;
+  el.value = text.substring(0, start) + replacement + text.substring(end);
+  el.focus();
+  el.selectionStart = start;
+  el.selectionEnd = start + replacement.length;
+  
+  // Dispara o evento de input para acionar o salvamento automático
+  el.dispatchEvent(new Event('input'));
+}
+
+function gerarId() {
+  return 'q' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="description" content="Formulário online">
+  <title>SETUR Forms — Formulário</title>
+  <style>
+/* ============================================================
+   SETUR Forms GAS — CSS Compartilhado
+   Importado via include('css') nos templates
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cor-primaria:    #1a73e8;
+  --cor-primaria-h:  #1557b0;
+  --cor-fundo:       #f8f9fa;
+  --cor-card:        #ffffff;
+  --cor-texto:       #202124;
+  --cor-texto-soft:  #5f6368;
+  --cor-borda:       #e0e0e0;
+  --cor-erro:        #d93025;
+  --cor-sucesso:     #1e8e3e;
+  --cor-aviso:       #f9a825;
+  --raio:            12px;
+  --sombra:          0 2px 12px rgba(0,0,0,0.08);
+  --sombra-hover:    0 4px 20px rgba(0,0,0,0.14);
+  --transicao:       0.2s ease;
+  --fonte:           'Inter', 'Segoe UI', sans-serif;
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--fonte);
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Tipografia ─────────────────────────────────────────── */
+h1 { font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
+h2 { font-size: 1.375rem; font-weight: 600; line-height: 1.3; }
+h3 { font-size: 1.125rem; font-weight: 600; }
+p  { margin-bottom: 0.75rem; }
+a  { color: var(--cor-primaria); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Layout Container ─────────────────────────────────────── */
+.container { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.container--wide { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+/* ── Card ─────────────────────────────────────────────────── */
+.card {
+  background: var(--cor-card);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  padding: 28px 32px;
+  margin-bottom: 16px;
+}
+@media (max-width: 480px) { .card { padding: 20px 16px; } }
+
+/* ── Botões ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: var(--fonte);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background var(--transicao), box-shadow var(--transicao), transform var(--transicao);
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.btn--primary   { background: var(--cor-primaria); color: #fff; }
+.btn--primary:hover:not(:disabled) { background: var(--cor-primaria-h); box-shadow: 0 2px 8px rgba(26,115,232,0.4); }
+
+.btn--secondary { background: transparent; color: var(--cor-primaria); border: 1.5px solid var(--cor-primaria); }
+.btn--secondary:hover:not(:disabled) { background: rgba(26,115,232,0.08); }
+
+.btn--danger    { background: var(--cor-erro); color: #fff; }
+.btn--danger:hover:not(:disabled) { background: #b52a1c; }
+
+.btn--ghost     { background: transparent; color: var(--cor-texto-soft); }
+.btn--ghost:hover:not(:disabled) { background: rgba(0,0,0,0.06); }
+
+.btn--sm  { padding: 6px 14px; font-size: 0.875rem; }
+.btn--lg  { padding: 13px 28px; font-size: 1rem; }
+.btn--full { width: 100%; justify-content: center; }
+
+/* ── Formulário / Campos ─────────────────────────────────── */
+.campo { margin-bottom: 20px; }
+.campo__label {
+  display: block;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  margin-bottom: 6px;
+  color: var(--cor-texto);
+}
+.campo__label .obrigatorio { color: var(--cor-erro); margin-left: 2px; }
+.campo__descricao { font-size: 0.8125rem; color: var(--cor-texto-soft); margin-top: 4px; margin-bottom: 0; }
+
+.campo__input,
+.campo__select,
+.campo__textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--fonte);
+  font-size: 0.9375rem;
+  border: 1.5px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-card);
+  color: var(--cor-texto);
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+  outline: none;
+}
+.campo__input:focus,
+.campo__select:focus,
+.campo__textarea:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
+}
+.campo__input--erro,
+.campo__select--erro,
+.campo__textarea--erro {
+  border-color: var(--cor-erro);
+}
+.campo__input--erro:focus,
+.campo__select--erro:focus,
+.campo__textarea--erro:focus {
+  box-shadow: 0 0 0 3px rgba(217,48,37,0.12);
+}
+.campo__textarea { resize: vertical; min-height: 100px; }
+.campo__erro {
+  color: var(--cor-erro);
+  font-size: 0.8125rem;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* Radio e Checkbox */
+.opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--transicao);
+  margin-bottom: 6px;
+  border: 1.5px solid var(--cor-borda);
+}
+.opcao:hover { background: rgba(26,115,232,0.06); border-color: var(--cor-primaria); }
+.opcao input[type="radio"],
+.opcao input[type="checkbox"] { margin-top: 2px; accent-color: var(--cor-primaria); width: 17px; height: 17px; flex-shrink: 0; }
+.opcao__label { font-size: 0.9375rem; cursor: pointer; flex: 1; }
+
+/* Estrelas */
+.estrelas { display: flex; gap: 6px; flex-wrap: wrap; }
+.estrela {
+  font-size: 1.75rem;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: color 0.15s, transform 0.15s;
+  line-height: 1;
+  user-select: none;
+}
+.estrela:hover, .estrela.ativa { color: #f59e0b; transform: scale(1.12); }
+
+/* Slider */
+.slider-wrap { display: flex; align-items: center; gap: 12px; }
+.slider-wrap input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--cor-borda);
+  outline: none;
+  accent-color: var(--cor-primaria);
+}
+.slider-valor {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--cor-primaria);
+  font-size: 1.125rem;
+}
+
+/* Escala linear */
+.escala { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.escala__label-ext { font-size: 0.8125rem; color: var(--cor-texto-soft); }
+.escala__btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--cor-borda);
+  background: var(--cor-card);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.escala__btn:hover, .escala__btn.ativo {
+  background: var(--cor-primaria);
+  color: #fff;
+  border-color: var(--cor-primaria);
+}
+
+/* Upload */
+.upload-area {
+  border: 2px dashed var(--cor-borda);
+  border-radius: 10px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.upload-area:hover, .upload-area.dragover {
+  border-color: var(--cor-primaria);
+  background: rgba(26,115,232,0.04);
+}
+.upload-area__icon { font-size: 2rem; margin-bottom: 8px; }
+.upload-area__texto { font-size: 0.9rem; color: var(--cor-texto-soft); }
+.upload-preview { margin-top: 10px; font-size: 0.875rem; color: var(--cor-sucesso); }
+
+/* Canvas assinatura */
+.canvas-wrap { position: relative; }
+.canvas-assinatura {
+  width: 100%;
+  max-width: 500px;
+  height: 160px;
+  border: 1.5px solid var(--cor-borda);
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: crosshair;
+  display: block;
+  touch-action: none;
+}
+.canvas-limpar {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  color: var(--cor-erro);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--fonte);
+}
+
+/* ── Barra de Progresso ──────────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: var(--cor-borda);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.progress-bar__fill {
+  height: 100%;
+  background: var(--cor-primaria);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* ── Badges de Status ─────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.badge--ativo     { background: #e6f4ea; color: #1e7e34; }
+.badge--rascunho  { background: #fff3cd; color: #856404; }
+.badge--pausado   { background: #e8eaed; color: #5f6368; }
+.badge--encerrado { background: #fce8e6; color: #c5221f; }
+
+/* ── Toast / Notificações ─────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  pointer-events: all;
+  animation: toastIn 0.3s ease;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.toast--sucesso { background: #1e8e3e; }
+.toast--erro    { background: #d93025; }
+.toast--aviso   { background: #f9a825; color: #202124; }
+.toast--info    { background: #1a73e8; }
+
+/* ── Loading Spinner ─────────────────────────────────────── */
+.spinner {
+  width: 22px; height: 22px;
+  border: 3px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+.spinner--dark {
+  border-color: rgba(26,115,232,0.25);
+  border-top-color: var(--cor-primaria);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Estado vazio ─────────────────────────────────────────── */
+.estado-vazio {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--cor-texto-soft);
+}
+.estado-vazio__icone { font-size: 3rem; margin-bottom: 16px; }
+.estado-vazio h3 { color: var(--cor-texto); margin-bottom: 8px; }
+
+/* ── Responsividade ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  h1 { font-size: 1.375rem; }
+  h2 { font-size: 1.125rem; }
+  #toast-container { left: 16px; right: 16px; bottom: 16px; }
+  .toast { max-width: 100%; }
+}
+
+/* ── Modal Customizado (Premium) ─────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.ativo {
+  opacity: 1;
+  pointer-events: all;
+}
+.modal-card {
+  background: var(--cor-card);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 440px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.18);
+  transform: translateY(24px);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+.modal-overlay.ativo .modal-card {
+  transform: translateY(0);
+}
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--cor-borda);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+.modal-body {
+  padding: 24px;
+}
+.modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--cor-borda);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fafafa;
+}
+</style>
+
+  <style>
+    .form-cabecalho {
+      border-radius: var(--raio) var(--raio) 0 0;
+      padding: 32px;
+      background: var(--cor-primaria);
+      color: #fff;
+    }
+    .form-cabecalho img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 16px; }
+    .form-cabecalho h1 { color: #fff; font-size: 1.5rem; margin-bottom: 8px; }
+    .form-cabecalho p  { color: rgba(255,255,255,0.85); font-size: 0.9375rem; margin: 0; }
+    .form-body   { background: var(--cor-fundo); border-radius: 0 0 var(--raio) var(--raio); }
+    .form-secao  { padding: 24px 32px; }
+    @media(max-width:480px){ .form-secao{ padding:16px; } .form-cabecalho{ padding:20px; } }
+    .secao-titulo { font-size:1rem; font-weight:600; color:var(--cor-texto-soft); text-transform:uppercase; letter-spacing:.06em; margin-bottom:20px; padding-bottom:8px; border-bottom:1px solid var(--cor-borda); }
+    .navegacao { display:flex; justify-content:space-between; align-items:center; padding:20px 32px; border-top:1px solid var(--cor-borda); }
+    @media(max-width:480px){ .navegacao{ padding:16px; } }
+    .tela-estado { text-align:center; padding:60px 32px; }
+    .tela-estado .icone { font-size:4rem; margin-bottom:20px; }
+    .tela-estado h2 { margin-bottom:12px; }
+    .tela-estado p  { color:var(--cor-texto-soft); max-width:400px; margin:0 auto; }
+    .honeyport { display:none !important; visibility:hidden; }
+    .grade-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    .grade-table th { text-align:left; padding:8px; background:var(--cor-fundo); font-weight:500; font-size:.8125rem; color:var(--cor-texto-soft); }
+    .grade-table td { padding:8px; border-bottom:1px solid var(--cor-borda); }
+    .grade-table input { accent-color:var(--cor-primaria); }
+    .contador-chars { font-size:.75rem; color:var(--cor-texto-soft); text-align:right; margin-top:3px; }
+    .retry-banner { background:#fff3cd; border:1px solid #f9a825; border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; align-items:center; gap:12px; font-size:.9rem; }
+    .rascunho-banner { background:#e8f0fe; border:1px solid #aecbfa; border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; font-size:.875rem; }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- Estado: carregando -->
+<div id="tela-carregando" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div style="text-align:center;color:var(--cor-texto-soft);">
+    <div class="spinner spinner--dark" style="width:36px;height:36px;margin:0 auto 16px;"></div>
+    <p>Carregando formulário...</p>
+  </div>
+</div>
+
+<!-- Tela de estado (pausado/encerrado/etc) -->
+<div id="tela-estado" style="display:none;padding-top:40px;" class="container">
+  <div class="card tela-estado">
+    <div class="icone" id="estado-icone">⚠️</div>
+    <h2 id="estado-titulo">Formulário indisponível</h2>
+    <p id="estado-mensagem"></p>
+  </div>
+</div>
+
+<!-- Formulário principal -->
+<div id="tela-form" style="display:none;">
+  <div class="container" style="padding-top:32px;padding-bottom:48px;">
+    <!-- Rascunho -->
+    <div id="rascunho-banner" class="rascunho-banner" style="display:none;">
+      <span>📝 Encontramos um rascunho salvo. Deseja continuar de onde parou?</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn--sm btn--primary" onclick="carregarRascunho()">Sim, continuar</button>
+        <button class="btn btn--sm btn--ghost" onclick="descartarRascunho()">Descartar</button>
+      </div>
+    </div>
+
+    <!-- Retry -->
+    <div id="retry-banner" class="retry-banner" style="display:none;">
+      ⚠️ <span id="retry-msg">Ocorreu um erro ao enviar. Tente novamente.</span>
+      <button class="btn btn--sm btn--primary" onclick="reenviar()">Tentar novamente</button>
+    </div>
+
+    <!-- Banner de prazo/contagem regressiva -->
+    <div id="banner-prazo" style="display:none;padding:12px 20px;background:linear-gradient(135deg,#ff6b35,#f7931e);color:#fff;border-radius:8px;margin-bottom:16px;display:none;align-items:center;gap:12px;font-size:.9rem;">
+      <span style="font-size:1.2rem;">⏰</span>
+      <div>
+        <div id="banner-prazo-texto" style="font-weight:600;"></div>
+        <div id="banner-prazo-contador" style="font-size:.8rem;opacity:.9;margin-top:2px;"></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <!-- Cabeçalho -->
+      <div class="form-cabecalho" id="form-cabecalho">
+        <img id="form-img-cabecalho" src="" alt="" style="display:none;">
+        <h1 id="form-titulo"></h1>
+        <p id="form-descricao"></p>
+      </div>
+
+      <!-- Barra de progresso -->
+      <div style="padding:0 32px;padding-top:20px;" id="wrap-progresso">
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="barra-progresso" style="width:0%"></div>
+        </div>
+        <p style="font-size:.8125rem;color:var(--cor-texto-soft);margin-bottom:0;text-align:right;" id="texto-progresso"></p>
+      </div>
+
+      <!-- Corpo do formulário (seções renderizadas dinamicamente) -->
+      <div class="form-body">
+        <div id="secao-atual" class="form-secao"></div>
+        <div class="navegacao">
+          <button class="btn btn--secondary" id="btn-voltar" onclick="voltarSecao()" style="display:none;">← Voltar</button>
+          <div></div>
+          <button class="btn btn--primary" id="btn-avancar" onclick="avancarOuEnviar()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé do formulário -->
+    <div id="form-rodape" style="text-align:center;margin-top:24px;display:none;">
+      <img id="form-img-rodape" src="" alt="" style="max-width:100%;max-height:100px;object-fit:contain;border-radius:8px;">
+    </div>
+  </div>
+</div>
+
+<!-- Tela de confirmação -->
+<div id="tela-confirmacao" style="display:none;" class="container">
+  <div class="card tela-estado" style="margin-top:40px;">
+    <div class="icone">✅</div>
+    <div id="mensagem-confirmacao"></div>
+    <p style="margin-top:16px;font-size:.875rem;color:var(--cor-texto-soft);" id="resposta-id-texto"></p>
+  </div>
+</div>
+
+<!-- Campo honeypot oculto (anti-bot) -->
+<div class="honeyport" aria-hidden="true">
+  <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off">
+</div>
+
+<script>
+/* ============================================================
+   SETUR Forms GAS — Utilitários JavaScript Compartilhados
+   ============================================================ */
+
+// ── API Client ──────────────────────────────────────────────
+const API = {
+  /**
+   * Chama a API do backend via google.script.run.
+   * @param {string} action
+   * @param {Object} payload
+   * @returns {Promise<{ok:boolean, data?:*, error?:string, codigo?:string}>}
+   */
+  call(action, payload = {}) {
+    return new Promise((resolve) => {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && !res.ok && res.codigo === 'SESSAO_INVALIDA') {
+            console.warn('[API] Sessão expirada detectada.');
+            if (typeof redirecionarParaLogin === 'function') {
+              redirecionarParaLogin();
+            } else {
+              Sessao.limpar();
+            }
+          }
+          resolve(res);
+        })
+        .withFailureHandler((err) => {
+          console.error('[API] Falha na chamada:', action, err);
+          resolve({ ok: false, error: 'Erro de comunicação com o servidor. Verifique sua conexão.' });
+        })
+        .api(action, payload);
+    });
+  }
+};
+
+// ── Toast / Notificações ────────────────────────────────────
+const Toast = {
+  _container: null,
+
+  _getContainer() {
+    if (!this._container) {
+      this._container = document.getElementById('toast-container');
+      if (!this._container) {
+        this._container = document.createElement('div');
+        this._container.id = 'toast-container';
+        document.body.appendChild(this._container);
+      }
+    }
+    return this._container;
+  },
+
+  show(mensagem, tipo = 'info', duracao = 4000) {
+    const el = document.createElement('div');
+    el.className = `toast toast--${tipo}`;
+    el.textContent = mensagem;
+    this._getContainer().appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.3s';
+      setTimeout(() => el.remove(), 320);
+    }, duracao);
+  },
+
+  sucesso(msg) { this.show(msg, 'sucesso'); },
+  erro(msg)    { this.show(msg, 'erro', 6000); },
+  aviso(msg)   { this.show(msg, 'aviso'); },
+  info(msg)    { this.show(msg, 'info'); },
+};
+
+// ── Loading State ───────────────────────────────────────────
+const Loading = {
+  show(btn, texto = 'Aguarde...') {
+    if (!btn) return;
+    btn._textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> ${texto}`;
+  },
+  hide(btn) {
+    if (!btn || !btn._textoOriginal) return;
+    btn.disabled = false;
+    btn.innerHTML = btn._textoOriginal;
+    delete btn._textoOriginal;
+  },
+};
+
+// ── SafeStorage (fallback em memória se o localStorage estiver bloqueado) ──
+const SafeStorage = {
+  _mem: {},
+  _ok: null,
+  _disp() {
+    if (this._ok !== null) return this._ok;
+    try {
+      const k = '__st_test__';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+      this._ok = true;
+    } catch (e) { this._ok = false; }
+    return this._ok;
+  },
+  getItem(k) {
+    if (this._disp()) { try { return localStorage.getItem(k); } catch (e) {} }
+    return Object.prototype.hasOwnProperty.call(this._mem, k) ? this._mem[k] : null;
+  },
+  setItem(k, v) {
+    this._mem[k] = String(v);
+    if (this._disp()) { try { localStorage.setItem(k, v); } catch (e) {} }
+  },
+  removeItem(k) {
+    delete this._mem[k];
+    if (this._disp()) { try { localStorage.removeItem(k); } catch (e) {} }
+  },
+};
+
+// ── Sessão Admin ────────────────────────────────────────────
+const Sessao = {
+  CHAVE: 'seturforms_token',
+
+  salvar(token) { SafeStorage.setItem(this.CHAVE, token); },
+  obter()       { return SafeStorage.getItem(this.CHAVE) || ''; },
+  limpar()      { SafeStorage.removeItem(this.CHAVE); },
+  existe()      { return !!this.obter(); },
+};
+
+// ── Rascunho automático ─────────────────────────────────────
+const Rascunho = {
+  salvar(formId, dados) {
+    try {
+      SafeStorage.setItem('rascunho_' + formId, JSON.stringify({ dados, ts: Date.now() }));
+    } catch(e) { /* Silencioso — quota de localStorage */ }
+  },
+
+  carregar(formId) {
+    try {
+      const raw = SafeStorage.getItem('rascunho_' + formId);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Rascunho válido por 7 dias
+      if (Date.now() - parsed.ts > 7 * 24 * 3600 * 1000) {
+        this.limpar(formId);
+        return null;
+      }
+      return parsed.dados;
+    } catch(e) { return null; }
+  },
+
+  limpar(formId) {
+    SafeStorage.removeItem('rascunho_' + formId);
+  },
+};
+
+// ── Fingerprint (para rate limiting) ───────────────────────
+const Fingerprint = {
+  obter() {
+    let fp = SafeStorage.getItem('seturforms_fp');
+    if (!fp) {
+      fp = Math.random().toString(36).slice(2) +
+           Date.now().toString(36) +
+           (navigator.language || '').replace(/[^a-z]/g,'');
+      SafeStorage.setItem('seturforms_fp', fp);
+    }
+    return fp + navigator.userAgent.slice(0, 20);
+  },
+};
+
+// ── Formatação ──────────────────────────────────────────────
+const Formato = {
+  data(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+        timeZone: 'America/Sao_Paulo',
+      });
+    } catch(e) { return iso; }
+  },
+
+  numero(n) {
+    return Number(n).toLocaleString('pt-BR');
+  },
+
+  bytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  },
+};
+
+// ── DOM Helpers ─────────────────────────────────────────────
+const DOM = {
+  qs(sel, parent = document)  { return parent.querySelector(sel); },
+  qsa(sel, parent = document) { return [...parent.querySelectorAll(sel)]; },
+
+  criar(tag, attrs = {}, ...filhos) {
+    const el = document.createElement(tag);
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'text') el.textContent = v;
+      else el.setAttribute(k, v);
+    });
+    filhos.forEach(f => f && el.appendChild(typeof f === 'string' ? document.createTextNode(f) : f));
+    return el;
+  },
+
+  mostrar(el) { if (el) el.style.display = ''; },
+  ocultar(el) { if (el) el.style.display = 'none'; },
+
+  setErro(inputEl, msg) {
+    if (!inputEl) return;
+    inputEl.classList.add('campo__input--erro', 'campo__select--erro', 'campo__textarea--erro');
+    let erroEl = inputEl.parentElement.querySelector('.campo__erro');
+    if (!erroEl) {
+      erroEl = document.createElement('p');
+      erroEl.className = 'campo__erro';
+      inputEl.parentElement.appendChild(erroEl);
+    }
+    erroEl.textContent = '⚠ ' + msg;
+  },
+
+  clearErro(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.remove('campo__input--erro', 'campo__select--erro', 'campo__textarea--erro');
+    const erroEl = inputEl.parentElement.querySelector('.campo__erro');
+    if (erroEl) erroEl.remove();
+  },
+};
+
+// ── Utilitários Gerais ──────────────────────────────────────
+const Utils = {
+  debounce(fn, ms = 400) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  },
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  /** Baixa um arquivo de texto para o computador do usuário */
+  downloadTexto(conteudo, nomeArquivo, tipo = 'text/plain') {
+    const blob = new Blob([conteudo], { type: tipo });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  /** Copia texto para a área de transferência */
+  async copiar(texto) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    } catch(e) { return false; }
+  },
+};
+</script>
+
+<script>
+/* ============================================================
+   SETUR Forms GAS — Validadores Client-Side
+   Máscaras, CPF, CNPJ, e-mail, telefone, CEP
+   ============================================================ */
+
+const Validadores = {
+
+  // ── CPF ────────────────────────────────────────────────────
+  cpf(valor) {
+    const limpo = valor.replace(/\D/g, '');
+    if (limpo.length !== 11) return false;
+    if (/^(\d)\1+$/.test(limpo)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += parseInt(limpo[i]) * (10 - i);
+    let resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(limpo[9])) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += parseInt(limpo[i]) * (11 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    return resto === parseInt(limpo[10]);
+  },
+
+  // ── CNPJ ───────────────────────────────────────────────────
+  cnpj(valor) {
+    const limpo = valor.replace(/\D/g, '');
+    if (limpo.length !== 14) return false;
+    if (/^(\d)\1+$/.test(limpo)) return false;
+    const calc = (base, pesos) => {
+      const soma = base.reduce((a, d, i) => a + d * pesos[i], 0);
+      const r = soma % 11;
+      return r < 2 ? 0 : 11 - r;
+    };
+    const d = limpo.split('').map(Number);
+    const p1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+    const p2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+    return calc(d.slice(0,12), p1) === d[12] && calc(d.slice(0,13), p2) === d[13];
+  },
+
+  // ── Email ──────────────────────────────────────────────────
+  email(valor) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
+  },
+
+  // ── Telefone BR ────────────────────────────────────────────
+  telefoneBR(valor) {
+    const limpo = valor.replace(/\D/g, '');
+    return limpo.length === 10 || limpo.length === 11;
+  },
+
+  // ── CEP ────────────────────────────────────────────────────
+  cep(valor) {
+    return /^\d{5}-?\d{3}$/.test(valor);
+  },
+
+  // ── Número ─────────────────────────────────────────────────
+  numero(valor) {
+    return !isNaN(parseFloat(valor)) && isFinite(valor);
+  },
+
+  // ── Regex customizado ──────────────────────────────────────
+  regex(valor, pattern) {
+    try { return new RegExp(pattern).test(valor); }
+    catch(e) { return false; }
+  },
+
+  // ── Validar por tipo ───────────────────────────────────────
+  porTipo(valor, tipoValidacao, regexCustom) {
+    if (!valor) return null;
+    switch(tipoValidacao) {
+      case 'EMAIL':    return this.email(valor)      ? null : 'E-mail inválido.';
+      case 'TELEFONE': return this.telefoneBR(valor) ? null : 'Telefone inválido. Use (XX) XXXXX-XXXX.';
+      case 'CPF':      return this.cpf(valor)        ? null : 'CPF inválido. Verifique os dígitos.';
+      case 'CNPJ':     return this.cnpj(valor)       ? null : 'CNPJ inválido.';
+      case 'CEP':      return this.cep(valor)        ? null : 'CEP inválido.';
+      case 'NUMERO':   return this.numero(valor)     ? null : 'Apenas números são permitidos.';
+      case 'REGEX':    return (regexCustom && !this.regex(valor, regexCustom)) ? 'Formato inválido.' : null;
+      default:         return null;
+    }
+  },
+};
+
+// ── Máscaras ────────────────────────────────────────────────
+const Mascaras = {
+
+  cpf(el) {
+    el.addEventListener('input', () => {
+      let v = el.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+      else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+      else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+      el.value = v;
+    });
+  },
+
+  cnpj(el) {
+    el.addEventListener('input', () => {
+      let v = el.value.replace(/\D/g, '').slice(0, 14);
+      if (v.length > 12) v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5');
+      else if (v.length > 8) v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3/$4');
+      else if (v.length > 5) v = v.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
+      else if (v.length > 2) v = v.replace(/(\d{2})(\d{1,3})/, '$1.$2');
+      el.value = v;
+    });
+  },
+
+  telefone(el) {
+    el.addEventListener('input', () => {
+      let v = el.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length === 11) v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+      else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d{1,4})/, '($1) $2-$3');
+      else if (v.length > 2) v = v.replace(/(\d{2})(\d{1,4})/, '($1) $2');
+      el.value = v;
+    });
+  },
+
+  cep(el) {
+    el.addEventListener('input', () => {
+      let v = el.value.replace(/\D/g, '').slice(0, 8);
+      if (v.length > 5) v = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+      el.value = v;
+    });
+  },
+
+  /** Aplica a máscara correta conforme o tipo de validação */
+  aplicar(el, tipoValidacao) {
+    switch(tipoValidacao) {
+      case 'CPF':      this.cpf(el);      break;
+      case 'CNPJ':     this.cnpj(el);     break;
+      case 'TELEFONE': this.telefone(el); break;
+      case 'CEP':      this.cep(el);      break;
+    }
+  },
+};
+
+// ── Canvas de Assinatura ─────────────────────────────────────
+class CanvasAssinatura {
+  constructor(canvasEl) {
+    this.canvas = canvasEl;
+    this.ctx = canvasEl.getContext('2d');
+    this.desenhando = false;
+    this.vazio = true;
+    this.modificado = false;
+    this._bind();
+    this._ajustarDPI();
+    window.addEventListener('resize', Utils.debounce(() => this._ajustarDPI(), 200));
+  }
+
+  _ajustarDPI() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width === 0) return;
+    this.canvas.width  = rect.width  * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.ctx.scale(dpr, dpr);
+    this.canvas.style.width  = rect.width  + 'px';
+    this.canvas.style.height = rect.height + 'px';
+    this.ctx.strokeStyle = '#1a1a1a';
+    this.ctx.lineWidth = 2;
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+  }
+
+  _getPos(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  }
+
+  _bind() {
+    const start = (e) => { e.preventDefault(); this.desenhando = true; this.vazio = false; this.modificado = true; const p = this._getPos(e); this.ctx.beginPath(); this.ctx.moveTo(p.x, p.y); };
+    const move  = (e) => { e.preventDefault(); if (!this.desenhando) return; const p = this._getPos(e); this.ctx.lineTo(p.x, p.y); this.ctx.stroke(); };
+    const end   = (e) => { e.preventDefault(); this.desenhando = false; };
+
+    this.canvas.addEventListener('mousedown', start);
+    this.canvas.addEventListener('mousemove', move);
+    this.canvas.addEventListener('mouseup', end);
+    this.canvas.addEventListener('mouseleave', end);
+    this.canvas.addEventListener('touchstart', start, { passive: false });
+    this.canvas.addEventListener('touchmove',  move,  { passive: false });
+    this.canvas.addEventListener('touchend',   end,   { passive: false });
+  }
+
+  limpar() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = this.canvas.width / dpr;
+    const h = this.canvas.height / dpr;
+    this.ctx.clearRect(0, 0, w, h);
+    this.vazio = true;
+    this.modificado = true;
+  }
+
+  /** Retorna o PNG em base64 (sem prefixo data:image/...) */
+  exportarBase64() {
+    if (this.vazio) return null;
+    return this.canvas.toDataURL('image/png').split(',')[1];
+  }
+}
+</script>
+
+
+<script>
+/* ── Estado global ───────────────────────────────────────── */
+const FORM_ID = "novo-formulario";
+const TOKEN_EDICAO = "";
+
+let formConfig = null;
+let secaoAtual = 0;
+let respostas = {};
+let nonce = null;
+let tsInicio = Date.now();
+let canvasInstancias = {};
+let tentativaPayload = null; // Para retry de rede
+
+/* ── Inicialização ───────────────────────────────────────── */
+async function inicializar() {
+  try {
+    const res = await API.call('obterFormularioPublico', { formId: FORM_ID });
+
+    if (!res.ok) {
+      mostrarEstado(res.codigo, res.error);
+      return;
+    }
+
+    formConfig = res.data;
+    // configJSON/tema chegam como string (evita falha de serialização do google.script.run) — fazer parse
+    try { if (typeof formConfig.configJSON === 'string') formConfig.configJSON = JSON.parse(formConfig.configJSON || '{}'); } catch (e) { formConfig.configJSON = { secoes: [] }; }
+    try { if (typeof formConfig.tema === 'string') formConfig.tema = JSON.parse(formConfig.tema || '{}'); } catch (e) { formConfig.tema = {}; }
+    aplicarTema(formConfig.tema);
+
+    // Verificar rascunho
+    const rascunho = Rascunho.carregar(FORM_ID);
+    if (rascunho && Object.keys(rascunho).length > 0) {
+      respostas = rascunho;
+      DOM.mostrar(document.getElementById('rascunho-banner'));
+    }
+
+    // Obter nonce
+    const nonceRes = await API.call('gerarNonce', { formId: FORM_ID });
+    nonce = nonceRes.ok ? nonceRes.data.nonce : null;
+
+    // Se for edição
+    if (TOKEN_EDICAO) {
+      await carregarParaEdicao();
+    }
+
+    renderizarFormulario();
+    document.getElementById('tela-carregando').style.display = 'none';
+    document.getElementById('tela-form').style.display = '';
+  } catch (err) {
+    console.error('Erro na inicialização:', err);
+    mostrarEstado('ERRO_INTERNO', 'Ocorreu um erro ao carregar o formulário: ' + err.message);
+  }
+}
+
+function carregarRascunho() {
+  DOM.ocultar(document.getElementById('rascunho-banner'));
+  renderizarSecao(); // Re-renderiza com valores do rascunho
+  Toast.info('Rascunho carregado.');
+}
+
+function descartarRascunho() {
+  respostas = {};
+  Rascunho.limpar(FORM_ID);
+  DOM.ocultar(document.getElementById('rascunho-banner'));
+}
+
+async function carregarParaEdicao() {
+  const res = await API.call('carregarRespostaParaEdicao', { token: TOKEN_EDICAO });
+  if (res.ok) {
+    respostas = res.data.respostas || {};
+    Toast.info('Resposta carregada para edição.');
+  }
+}
+
+/* ── Tema Visual ─────────────────────────────────────────── */
+function aplicarTema(tema) {
+  if (!tema) return;
+  const r = document.documentElement.style;
+  if (tema.corPrimaria)    r.setProperty('--cor-primaria', tema.corPrimaria);
+  if (tema.corFundo)       r.setProperty('--cor-fundo', tema.corFundo);
+  if (tema.corTexto)       r.setProperty('--cor-texto', tema.corTexto);
+  if (tema.corCard)        r.setProperty('--cor-card', tema.corCard);
+  if (tema.bordaArredondada) r.setProperty('--raio', tema.bordaArredondada);
+  if (tema.fonte) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    // String concatenada (não template literal): "//" dentro de crase quebra a serialização do GAS.
+    link.href = 'https://fonts.googleapis.com/css2?family=' + tema.fonte.split(' ').join('+') + ':wght@400;500;600;700&display=swap';
+    document.head.appendChild(link);
+    r.setProperty('--fonte', "'" + tema.fonte + "', sans-serif");
+  }
+  if (tema.cssExtra) {
+    const style = document.createElement('style');
+    style.textContent = tema.cssExtra;
+    document.head.appendChild(style);
+  }
+  document.getElementById('form-cabecalho').style.background = tema.corPrimaria || '';
+  if (tema.imagemCabecalho) {
+    const img = document.getElementById('form-img-cabecalho');
+    img.src = tema.imagemCabecalho;
+    img.style.display = '';
+  } else {
+    document.getElementById('form-img-cabecalho').style.display = 'none';
+  }
+  if (tema.imagemFundo) {
+    document.body.style.backgroundImage = "url('" + tema.imagemFundo + "')";
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+  } else {
+    document.body.style.backgroundImage = 'none';
+  }
+  if (tema.imagemRodape) {
+    const rodape = document.getElementById('form-rodape');
+    const imgRodape = document.getElementById('form-img-rodape');
+    imgRodape.src = tema.imagemRodape;
+    rodape.style.display = 'block';
+  } else {
+    document.getElementById('form-rodape').style.display = 'none';
+  }
+}
+
+/* ── Renderização ─────────────────────────────────────────── */
+function renderizarFormulario() {
+  const cfg = formConfig.configJSON;
+  document.getElementById('form-titulo').innerHTML = formConfig.titulo;
+  document.getElementById('form-descricao').innerHTML = formConfig.descricao || '';
+  document.title = String(formConfig.titulo || 'Formulário').replace(/<[^>]*>/g, '').trim() || 'Formulário';
+
+  // Link de edital
+  const linkEdital = cfg.configuracoes && cfg.configuracoes.linkEdital;
+  const textoEdital = (cfg.configuracoes && cfg.configuracoes.textoLinkEdital) || 'Clique aqui para ler o edital';
+  let elEdital = document.getElementById('form-link-edital');
+  if (linkEdital) {
+    if (!elEdital) {
+      elEdital = document.createElement('div');
+      elEdital.id = 'form-link-edital';
+      elEdital.style.cssText = 'margin-top:8px;';
+      document.getElementById('form-descricao').insertAdjacentElement('afterend', elEdital);
+    }
+    elEdital.innerHTML = `<a href="${linkEdital}" target="_blank" rel="noopener noreferrer" style="color:inherit;font-size:.875rem;font-weight:500;text-decoration:underline;opacity:.85;">📄 ${textoEdital}</a>`;
+  } else if (elEdital) {
+    elEdital.innerHTML = '';
+  }
+
+  // Banner de prazo
+  const exibirBanner = cfg.configuracoes && cfg.configuracoes.exibirBannerPrazo;
+  if (exibirBanner && formConfig.dataLimite) {
+    _initBannerPrazo(formConfig.dataLimite);
+  }
+
+  secaoAtual = 0;
+  renderizarSecao();
+}
+
+function _initBannerPrazo(dataLimite) {
+  const limite = new Date(dataLimite);
+  const banner = document.getElementById('banner-prazo');
+  if (!banner || isNaN(limite.getTime())) return;
+
+  function atualizar() {
+    const agora = new Date();
+    const diff = limite - agora;
+    if (diff <= 0) {
+      banner.style.display = 'none';
+      return;
+    }
+    const h24 = 24 * 60 * 60 * 1000;
+    const dataFmt = limite.toLocaleDateString('pt-BR') + ' às ' + limite.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('banner-prazo-texto').textContent = 'Encerramento em ' + dataFmt;
+    banner.style.display = 'flex';
+
+    if (diff <= h24) {
+      const horas = Math.floor(diff / 3600000);
+      const minutos = Math.floor((diff % 3600000) / 60000);
+      const segundos = Math.floor((diff % 60000) / 1000);
+      document.getElementById('banner-prazo-contador').textContent =
+        'Faltam ' + String(horas).padStart(2,'0') + ':' + String(minutos).padStart(2,'0') + ':' + String(segundos).padStart(2,'0');
+    } else {
+      document.getElementById('banner-prazo-contador').textContent = '';
+    }
+  }
+
+  atualizar();
+  setInterval(atualizar, 1000);
+}
+
+
+function renderizarSecao() {
+  const cfg = formConfig.configJSON;
+  const secoes = cfg.secoes || [];
+  const secao = secoes[secaoAtual];
+  if (!secao) return;
+
+  const total = secoes.length;
+  const pct = total > 1 ? Math.round(((secaoAtual) / (total - 1)) * 100) : (secaoAtual === 0 ? 0 : 100);
+  document.getElementById('barra-progresso').style.width = pct + '%';
+  document.getElementById('texto-progresso').textContent =
+    total > 1 ? ('Seção ' + (secaoAtual + 1) + ' de ' + total) : '';
+  document.getElementById('wrap-progresso').style.display = total > 1 ? '' : 'none';
+
+  const container = document.getElementById('secao-atual');
+  container.innerHTML = '';
+
+  if (secao.titulo) {
+    const h = document.createElement('h3');
+    h.className = 'secao-titulo';
+    h.innerHTML = secao.titulo;
+    container.appendChild(h);
+  }
+
+  const perguntas = aplicarLogicaCondicional(secao.perguntas || [], cfg);
+  perguntas.forEach(pergunta => {
+    const el = renderizarPergunta(pergunta);
+    if (el) container.appendChild(el);
+  });
+
+  // Botões de navegação
+  const btnVoltar  = document.getElementById('btn-voltar');
+  const btnAvancar = document.getElementById('btn-avancar');
+  btnVoltar.style.display = secaoAtual > 0 ? '' : 'none';
+  const ultima = secaoAtual >= secoes.length - 1;
+  btnAvancar.textContent = ultima ? 'Enviar resposta ✓' : 'Próximo →';
+  btnAvancar.className = ultima ? 'btn btn--primary btn--lg' : 'btn btn--primary';
+
+  // Restaurar valores salvos
+  restaurarRespostas();
+  canvasInstancias = {};
+  inicializarCanvases();
+}
+
+function renderizarPergunta(p) {
+  if (p.tipo === 'SOMENTE_LEITURA') {
+    const div = document.createElement('div');
+    div.className = 'campo';
+    div.innerHTML = p.titulo || '';
+    return div;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'campo';
+  wrap.dataset.id = p.id;
+
+  const label = document.createElement('label');
+  label.className = 'campo__label';
+  label.setAttribute('for', 'campo_' + p.id);
+  label.innerHTML = (p.titulo || '') +
+    (p.obrigatoria ? '<span class="obrigatorio" aria-label="obrigatório">*</span>' : '');
+  wrap.appendChild(label);
+
+  if (p.descricao) {
+    const desc = document.createElement('p');
+    desc.className = 'campo__descricao';
+    desc.innerHTML = p.descricao;
+    wrap.appendChild(desc);
+  }
+
+  const input = criarInput(p);
+  if (input) wrap.appendChild(input);
+
+  return wrap;
+}
+
+function criarInput(p) {
+  switch(p.tipo) {
+    case 'RESPOSTA_CURTA': {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'campo__input';
+      input.id = 'campo_' + p.id;
+      input.dataset.perguntaId = p.id;
+      if (p.validacao && p.validacao.tipo !== 'LIVRE') {
+        Mascaras.aplicar(input, p.validacao.tipo);
+        if (p.validacao.tipo === 'EMAIL') input.type = 'email';
+        if (p.validacao.tipo === 'NUMERO') input.type = 'number';
+      }
+      input.addEventListener('change', () => salvarRespostaInput(p.id, input.value));
+      return input;
+    }
+    case 'PARAGRAFO': {
+      const wrap = document.createElement('div');
+      const ta = document.createElement('textarea');
+      ta.className = 'campo__textarea';
+      ta.id = 'campo_' + p.id;
+      ta.dataset.perguntaId = p.id;
+      const limite = p.config && p.config.limiteCaracteres;
+      let cont = null;
+      if (limite) { ta.maxLength = limite; }
+      ta.addEventListener('input', () => {
+        salvarRespostaInput(p.id, ta.value);
+        if (limite && cont) cont.textContent = ta.value.length + '/' + limite;
+      });
+      wrap.appendChild(ta);
+      if (limite) {
+        cont = document.createElement('p');
+        cont.className = 'contador-chars';
+        cont.textContent = '0/' + limite;
+        wrap.appendChild(cont);
+      }
+      return wrap;
+    }
+    case 'MULTIPLA_ESCOLHA': {
+      const wrap = document.createElement('div');
+      const opcoes = embaralhar(p.opcoes || [], p.config && p.config.embaralharOpcoes);
+      const valorSalvo = respostas[p.id];
+      opcoes.forEach((op, idx) => {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'campo_' + p.id;
+        input.value = op;
+        input.id = 'campo_' + p.id + '_' + idx;
+        if (valorSalvo === op) {
+          input.checked = true;
+        }
+        input.addEventListener('change', () => salvarRespostaInput(p.id, op));
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.textContent = op;
+        label.appendChild(input);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      });
+      if (p.config && p.config.permitirOutro) {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'campo_' + p.id;
+        radio.value = '__outro__';
+        const eOutro = valorSalvo !== undefined && !opcoes.includes(valorSalvo) && valorSalvo !== '';
+        if (eOutro) {
+          radio.checked = true;
+        }
+
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.appendChild(document.createTextNode('Outro: '));
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'campo__input';
+        textInput.style.marginTop = '6px';
+        textInput.id = 'outro_' + p.id;
+        textInput.placeholder = 'Especifique...';
+        textInput.value = eOutro ? valorSalvo : '';
+
+        textInput.addEventListener('input', () => {
+          radio.checked = true;
+          salvarRespostaInput(p.id, textInput.value);
+        });
+
+        radio.addEventListener('change', () => {
+          textInput.focus();
+          salvarRespostaInput(p.id, textInput.value);
+        });
+
+        span.appendChild(textInput);
+        label.appendChild(radio);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      }
+      return wrap;
+    }
+    case 'CAIXAS_SELECAO': {
+      const wrap = document.createElement('div');
+      const selecionados = new Set(Array.isArray(respostas[p.id]) ? respostas[p.id] : []);
+      let outroValor = '';
+
+      const obterOutroValorSalvo = () => {
+        const opcoes = p.opcoes || [];
+        const salvo = Array.isArray(respostas[p.id]) ? respostas[p.id] : [];
+        const outro = salvo.find(v => !opcoes.includes(v));
+        return outro || '';
+      };
+
+      outroValor = obterOutroValorSalvo();
+
+      const atualizarCheckboxRespostas = () => {
+        const valores = [...selecionados];
+        if (outroValor && document.getElementById('chk_outro_chk_' + p.id).checked) {
+          valores.push(outroValor);
+        }
+        salvarRespostaInput(p.id, valores);
+      };
+
+      (p.opcoes || []).forEach((op, idx) => {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = op;
+        if (selecionados.has(op)) {
+          input.checked = true;
+        }
+        input.addEventListener('change', () => {
+          if (input.checked) selecionados.add(op);
+          else selecionados.delete(op);
+          atualizarCheckboxRespostas();
+        });
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.textContent = op;
+        label.appendChild(input);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      });
+
+      if (p.config && p.config.permitirOutro) {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.id = 'chk_outro_chk_' + p.id;
+        const eOutro = outroValor !== '';
+        if (eOutro) {
+          chk.checked = true;
+        }
+
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.appendChild(document.createTextNode('Outro: '));
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'campo__input';
+        textInput.style.marginTop = '6px';
+        textInput.id = 'outro_input_' + p.id;
+        textInput.placeholder = 'Especifique...';
+        textInput.value = outroValor;
+
+        textInput.addEventListener('input', () => {
+          outroValor = textInput.value;
+          chk.checked = true;
+          atualizarCheckboxRespostas();
+        });
+
+        chk.addEventListener('change', () => {
+          atualizarCheckboxRespostas();
+        });
+
+        span.appendChild(textInput);
+        label.appendChild(chk);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      }
+      return wrap;
+    }
+    case 'LISTA_SUSPENSA': {
+      const sel = document.createElement('select');
+      sel.className = 'campo__select';
+      sel.id = 'campo_' + p.id;
+      sel.dataset.perguntaId = p.id;
+      sel.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: 'Selecione uma opção...' }));
+      (p.opcoes || []).forEach(op => {
+        sel.appendChild(Object.assign(document.createElement('option'), { value: op, textContent: op }));
+      });
+      sel.addEventListener('change', () => salvarRespostaInput(p.id, sel.value));
+      return sel;
+    }
+    case 'ESCALA_LINEAR': {
+      const cfg = p.config || {};
+      const min = cfg.min || 1, max = cfg.max || 5;
+      const wrap = document.createElement('div');
+      wrap.className = 'escala';
+      if (cfg.labelMin) wrap.appendChild(Object.assign(document.createElement('span'), { className: 'escala__label-ext', textContent: cfg.labelMin }));
+      for (let i = min; i <= max; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'escala__btn';
+        btn.textContent = i;
+        btn.addEventListener('click', () => {
+          wrap.querySelectorAll('.escala__btn').forEach(b => b.classList.remove('ativo'));
+          btn.classList.add('ativo');
+          salvarRespostaInput(p.id, i);
+        });
+        wrap.appendChild(btn);
+      }
+      if (cfg.labelMax) wrap.appendChild(Object.assign(document.createElement('span'), { className: 'escala__label-ext', textContent: cfg.labelMax }));
+      return wrap;
+    }
+    case 'AVALIACAO_ESTRELAS': {
+      const max = (p.config && p.config.max) || 5;
+      const wrap = document.createElement('div');
+      wrap.className = 'estrelas';
+      for (let i = 1; i <= max; i++) {
+        const span = document.createElement('span');
+        span.className = 'estrela';
+        span.textContent = '★';
+        span.dataset.val = i;
+        span.addEventListener('click', () => {
+          wrap.querySelectorAll('.estrela').forEach((s, idx) => s.classList.toggle('ativa', idx < i));
+          salvarRespostaInput(p.id, i);
+        });
+        wrap.appendChild(span);
+      }
+      return wrap;
+    }
+    case 'SLIDER_NUMERICO': {
+      const cfg = p.config || {};
+      const min = cfg.min || 0, max = cfg.max || 100, step = cfg.step || 1;
+      const wrap = document.createElement('div');
+      wrap.className = 'slider-wrap';
+      const range = document.createElement('input');
+      range.type = 'range';
+      range.min = min; range.max = max; range.step = step; range.value = min;
+      const valSpan = document.createElement('span');
+      valSpan.className = 'slider-valor';
+      valSpan.textContent = min;
+      range.addEventListener('input', () => {
+        valSpan.textContent = range.value;
+        salvarRespostaInput(p.id, parseFloat(range.value));
+      });
+      wrap.appendChild(range);
+      wrap.appendChild(valSpan);
+      return wrap;
+    }
+    case 'DATA':      return criarInputData(p, 'date');
+    case 'HORA':      return criarInputData(p, 'time');
+    case 'DATA_HORA': return criarInputData(p, 'datetime-local');
+    case 'UPLOAD_ARQUIVO': return criarUpload(p);
+    case 'ASSINATURA_CANVAS': return criarAssinatura(p);
+    case 'GRADE_MULTIPLA':
+    case 'GRADE_CAIXAS':     return criarGrade(p);
+    case 'ACEITE_TERMOS':    return criarAceiteTermos(p);
+    default: return null;
+  }
+}
+
+function criarAceiteTermos(p) {
+  const wrap = document.createElement('div');
+  const cfg = p.config || {};
+  const textoTermos = cfg.textoTermos || '';
+  const labelAceite = cfg.labelAceite || 'Li e aceito os termos acima';
+  const id = 'campo_' + p.id;
+
+  if (textoTermos) {
+    const caixa = document.createElement('div');
+    caixa.style.cssText = 'max-height:200px;overflow-y:auto;padding:12px;background:#f8f9fa;border:1px solid var(--cor-borda);border-radius:8px;font-size:.85rem;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;';
+    caixa.textContent = textoTermos;
+    wrap.appendChild(caixa);
+  }
+
+  const labelEl = document.createElement('label');
+  labelEl.style.cssText = 'display:flex;align-items:center;gap:10px;font-size:.9rem;cursor:pointer;';
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.id = id;
+  checkbox.dataset.perguntaId = p.id;
+  checkbox.style.cssText = 'width:18px;height:18px;cursor:pointer;accent-color:var(--cor-primaria);';
+  checkbox.addEventListener('change', () => {
+    respostas[p.id] = checkbox.checked ? 'aceito' : '';
+  });
+  labelEl.appendChild(checkbox);
+  labelEl.appendChild(document.createTextNode(labelAceite));
+  wrap.appendChild(labelEl);
+  return wrap;
+}
+
+function criarInputData(p, tipo) {
+  const input = document.createElement('input');
+  input.type = tipo;
+  input.className = 'campo__input';
+  input.id = 'campo_' + p.id;
+  input.dataset.perguntaId = p.id;
+  if (p.config && p.config.min) input.min = p.config.min;
+  if (p.config && p.config.max) input.max = p.config.max;
+  input.addEventListener('change', () => salvarRespostaInput(p.id, input.value));
+  return input;
+}
+
+function criarUpload(p) {
+  const wrap = document.createElement('div');
+  const area = document.createElement('div');
+  area.className = 'upload-area';
+  area.id = 'upload_area_' + p.id;
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.style.display = 'none';
+  const cfg = p.config || {};
+  // Usar formatosAceitos (novo) ou extensoesPermitidas (legado)
+  const formatos = cfg.formatosAceitos && cfg.formatosAceitos.length
+    ? cfg.formatosAceitos
+    : (cfg.extensoesPermitidas && cfg.extensoesPermitidas.length ? cfg.extensoesPermitidas : []);
+  if (formatos.length) {
+    fileInput.accept = '.' + formatos.join(',.');
+  }
+  area.innerHTML = '<div class="upload-area__icon">📎</div><p class="upload-area__texto">Clique para selecionar ou arraste o arquivo aqui</p>';
+  area.addEventListener('click', () => fileInput.click());
+  area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+  area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+  area.addEventListener('drop', e => { e.preventDefault(); area.classList.remove('dragover'); processorUpload(e.dataTransfer.files[0], p, area); });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) processorUpload(fileInput.files[0], p, area); });
+  wrap.appendChild(fileInput);
+  wrap.appendChild(area);
+  return wrap;
+}
+
+async function processorUpload(file, p, area) {
+  if (!file) return;
+  const cfg = p.config || {};
+  const maxMB = cfg.tamanhoMaxMB || 10;
+  if (file.size > maxMB * 1024 * 1024) { Toast.erro('Arquivo muito grande. Máximo: ' + maxMB + 'MB.'); return; }
+
+  area.innerHTML = '<div class="upload-area__icon"><span class="spinner spinner--dark"></span></div><p class="upload-area__texto">Enviando...</p>';
+
+  const base64 = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => res(e.target.result.split(',')[1]);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+
+  const result = await API.call('uploadArquivo', {
+    formId: FORM_ID, perguntaId: p.id,
+    base64Data: base64, nomeArquivo: file.name,
+    mimeType: file.type,
+  });
+
+  if (result.ok) {
+    area.innerHTML = '<div class="upload-preview">✅ ' + file.name + ' enviado com sucesso!</div>';
+    salvarRespostaInput(p.id, result.data.url);
+  } else {
+    area.innerHTML = '<div class="upload-area__icon">📎</div><p class="upload-area__texto">Clique para selecionar ou arraste</p>';
+    Toast.erro(result.error);
+  }
+}
+
+function criarAssinatura(p) {
+  const wrap = document.createElement('div');
+  wrap.className = 'canvas-wrap';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'canvas-assinatura';
+  canvas.id = 'canvas_' + p.id;
+  const btnLimpar = document.createElement('button');
+  btnLimpar.type = 'button';
+  btnLimpar.className = 'canvas-limpar';
+  btnLimpar.textContent = '✖ Limpar assinatura';
+  btnLimpar.onclick = () => canvasInstancias[p.id] && canvasInstancias[p.id].limpar();
+  wrap.appendChild(canvas);
+  wrap.appendChild(btnLimpar);
+  setTimeout(() => {
+    const inst = new CanvasAssinatura(canvas);
+    canvasInstancias[p.id] = inst;
+  }, 50);
+  return wrap;
+}
+
+function criarGrade(p) {
+  const eh_caixa = p.tipo === 'GRADE_CAIXAS';
+  const linhas = p.config && p.config.linhas || [];
+  const colunas = p.config && p.config.colunas || [];
+  const table = document.createElement('table');
+  table.className = 'grade-table';
+  const thead = table.createTHead();
+  const tr = thead.insertRow();
+  tr.appendChild(document.createElement('th'));
+  colunas.forEach(col => { const th = document.createElement('th'); th.textContent = col; tr.appendChild(th); });
+  const tbody = table.createTBody();
+  linhas.forEach(lin => {
+    const row = tbody.insertRow();
+    const td0 = row.insertCell();
+    td0.textContent = lin;
+    colunas.forEach(col => {
+      const td = row.insertCell();
+      const input = document.createElement('input');
+      input.type = eh_caixa ? 'checkbox' : 'radio';
+      if (!eh_caixa) input.name = 'grade_' + p.id + '_' + lin;
+      input.style.accentColor = 'var(--cor-primaria)';
+      input.addEventListener('change', () => {
+        const val = respostas[p.id] || {};
+        if (eh_caixa) {
+          if (!val[lin]) val[lin] = [];
+          if (input.checked) { if (!val[lin].includes(col)) val[lin].push(col); }
+          else val[lin] = val[lin].filter(c => c !== col);
+        } else {
+          val[lin] = col;
+        }
+        salvarRespostaInput(p.id, val);
+      });
+      td.appendChild(input);
+    });
+  });
+  return table;
+}
+
+/* ── Lógica Condicional ──────────────────────────────────── */
+function aplicarLogicaCondicional(perguntas, cfg) {
+  const regras = cfg.logicaCondicional || [];
+  return perguntas.filter(p => {
+    const regra = regras.find(r => r.acao === 'OCULTAR_PERGUNTA' && r.destino === p.id);
+    if (!regra) return true;
+    const valorAtual = respostas[regra.perguntaOrigem];
+    const condicaoVerdadeira = avaliarCondicao(valorAtual, regra.operador, regra.valor);
+    return !condicaoVerdadeira; // Ocultar = não mostrar quando condição verdadeira = mostrar quando false
+  });
+}
+
+function avaliarCondicao(valorAtual, operador, valorEsperado) {
+  const a = String(valorAtual || '').toLowerCase();
+  const b = String(valorEsperado || '').toLowerCase();
+  switch(operador) {
+    case 'IGUAL':        return a === b;
+    case 'DIFERENTE':    return a !== b;
+    case 'CONTEM':       return a.includes(b);
+    case 'NAO_CONTEM':   return !a.includes(b);
+    case 'PREENCHIDO':   return a !== '';
+    case 'VAZIO':        return a === '';
+    default:             return false;
+  }
+}
+
+/* ── Navegação ───────────────────────────────────────────── */
+function voltarSecao() {
+  if (secaoAtual > 0) { secaoAtual--; renderizarSecao(); window.scrollTo(0,0); }
+}
+
+async function avancarOuEnviar() {
+  const secoes = formConfig.configJSON.secoes || [];
+  if (!validarSecaoAtual()) return;
+
+  // Verificar lógica de pulo de seção
+  const regras = formConfig.configJSON.logicaCondicional || [];
+  let proxima = secaoAtual + 1;
+  regras.forEach(r => {
+    if (r.acao === 'IR_PARA_SECAO' && respostas[r.perguntaOrigem] !== undefined) {
+      if (avaliarCondicao(respostas[r.perguntaOrigem], r.operador, r.valor)) {
+        const idx = secoes.findIndex(s => s.id === r.destino);
+        if (idx >= 0) proxima = idx;
+      }
+    }
+  });
+
+  if (proxima < secoes.length) {
+    secaoAtual = proxima;
+    renderizarSecao();
+    window.scrollTo(0,0);
+  } else {
+    await enviarFormulario();
+  }
+}
+
+/* ── Validação Client-Side ───────────────────────────────── */
+function validarSecaoAtual() {
+  const secoes = formConfig.configJSON.secoes || [];
+  const secao = secoes[secaoAtual];
+  const perguntas = secao ? secao.perguntas || [] : [];
+  let valido = true;
+
+  perguntas.forEach(p => {
+    if (p.tipo === 'SOMENTE_LEITURA') return;
+    const valor = respostas[p.id];
+    const vazio = valor === undefined ||
+                  valor === null ||
+                  (Array.isArray(valor) && valor.length === 0) ||
+                  (typeof valor === 'object' && Object.keys(valor).length === 0) ||
+                  (valor !== 0 && String(valor).trim() === '');
+
+    if (p.obrigatoria && vazio) {
+      marcarErro(p.id, 'Este campo é obrigatório.');
+      valido = false;
+      return;
+    }
+    if (!vazio && p.validacao && p.validacao.tipo !== 'LIVRE') {
+      const err = Validadores.porTipo(String(valor), p.validacao.tipo, p.validacao.regex);
+      if (err) { marcarErro(p.id, err); valido = false; }
+      else limparErro(p.id);
+    }
+  });
+
+  if (!valido) {
+    const primeiro = document.querySelector('.campo__input--erro, .campo__select--erro, .campo__textarea--erro');
+    if (primeiro) primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  return valido;
+}
+
+function marcarErro(perguntaId, msg) {
+  const wrap = document.querySelector('[data-id="' + perguntaId + '"]');
+  if (!wrap) return;
+  let erroEl = wrap.querySelector('.campo__erro');
+  if (!erroEl) { erroEl = document.createElement('p'); erroEl.className = 'campo__erro'; wrap.appendChild(erroEl); }
+  erroEl.textContent = '⚠ ' + msg;
+  const inp = wrap.querySelector('input,textarea,select');
+  if (inp) inp.classList.add('campo__input--erro');
+}
+
+function limparErro(perguntaId) {
+  const wrap = document.querySelector('[data-id="' + perguntaId + '"]');
+  if (!wrap) return;
+  const erroEl = wrap.querySelector('.campo__erro');
+  if (erroEl) erroEl.remove();
+  const inputEl = wrap.querySelector('.campo__input--erro');
+  if (inputEl) inputEl.classList.remove('campo__input--erro');
+}
+
+/* ── Envio ───────────────────────────────────────────────── */
+async function enviarFormulario() {
+  // Coletar assinaturas de canvas
+  for (const [id, inst] of Object.entries(canvasInstancias)) {
+    const png = inst.exportarBase64();
+    if (png) {
+      // Evita reupload se a assinatura já foi enviada e não mudou (ex.: retry)
+      const jaEnviada = typeof respostas[id] === 'string' && /^https?:/.test(respostas[id]);
+      if (jaEnviada && !inst.modificado) continue;
+      const res = await API.call('uploadArquivo', {
+        formId: FORM_ID, perguntaId: id,
+        base64Data: png, nomeArquivo: 'assinatura.png', mimeType: 'image/png',
+      });
+      if (res.ok) { respostas[id] = res.data.url; inst.modificado = false; }
+    }
+  }
+
+  const payload = {
+    formId: FORM_ID,
+    respostas: respostas,
+    nonce: nonce,
+    honeypot: document.getElementById('hp_website').value,
+    tempoPreenchimento: Math.round((Date.now() - tsInicio) / 1000),
+    userAgent: navigator.userAgent,
+  };
+
+  tentativaPayload = payload;
+
+  const btn = document.getElementById('btn-avancar');
+  Loading.show(btn, 'Enviando...');
+  btn.disabled = true;
+
+  try {
+    const res = await API.call('submitResponse', payload);
+
+    if (res.ok) {
+      Rascunho.limpar(FORM_ID);
+      tentativaPayload = null;
+      DOM.ocultar(document.getElementById('tela-form'));
+      DOM.ocultar(document.getElementById('retry-banner'));
+      const conf = document.getElementById('tela-confirmacao');
+      conf.style.display = '';
+      document.getElementById('mensagem-confirmacao').innerHTML = res.data.mensagemConfirmacao;
+      if (res.data.responseId) {
+        document.getElementById('resposta-id-texto').textContent =
+          'ID da sua resposta: ' + res.data.responseId.substring(0, 8) + '...';
+      }
+      window.scrollTo(0,0);
+    } else {
+      Loading.hide(btn);
+      btn.disabled = false;
+      // Mostrar banner de retry para erros de contingência
+      if (['LOCK_TIMEOUT_FILA','VERIFY_FALHOU_FILA','ERRO_LOCK_FILA'].includes(res.codigo)) {
+        // Resposta foi para a fila — tratar como sucesso informativo
+        Rascunho.limpar(FORM_ID);
+        DOM.ocultar(document.getElementById('tela-form'));
+        const conf = document.getElementById('tela-confirmacao');
+        conf.style.display = '';
+        document.getElementById('mensagem-confirmacao').innerHTML =
+          '<h3>Resposta registrada!</h3><p>' + res.error + '</p>';
+        window.scrollTo(0,0);
+      } else if (res.codigo === 'NONCE_INVALIDO') {
+        // Nonce expirou — gerar novo e permitir reenvio
+        const nonceRes = await API.call('gerarNonce', { formId: FORM_ID });
+        nonce = nonceRes.ok ? nonceRes.data.nonce : null;
+        Toast.aviso('Sessão expirada. Seus dados foram preservados. Tente enviar novamente.');
+      } else {
+        Toast.erro(res.error || 'Erro ao enviar. Tente novamente.');
+        mostrarRetry(res.error);
+      }
+    }
+  } catch(e) {
+    Loading.hide(btn);
+    btn.disabled = false;
+    Toast.erro('Erro de conexão. Seus dados foram preservados.');
+    mostrarRetry('Erro de conexão. Clique em "Tentar novamente" quando a conexão for restaurada.');
+  }
+}
+
+function mostrarRetry(msg) {
+  const banner = document.getElementById('retry-banner');
+  document.getElementById('retry-msg').textContent = msg || 'Erro ao enviar.';
+  DOM.mostrar(banner);
+  window.scrollTo(0,0);
+}
+
+async function reenviar() {
+  if (!tentativaPayload) return;
+  // Renovar nonce
+  const nonceRes = await API.call('gerarNonce', { formId: FORM_ID });
+  nonce = nonceRes.ok ? nonceRes.data.nonce : null;
+  tentativaPayload.nonce = nonce;
+  DOM.ocultar(document.getElementById('retry-banner'));
+  await enviarFormulario();
+}
+
+/* ── Estado (formulário indisponível) ────────────────────── */
+const ESTADOS = {
+  RASCUNHO:        { icone:'🚧', titulo:'Em breve' },
+  PAUSADO:         { icone:'⏸️', titulo:'Temporariamente pausado' },
+  ENCERRADO:       { icone:'🔒', titulo:'Encerrado' },
+  LIMITE_ATINGIDO: { icone:'🔒', titulo:'Vagas esgotadas' },
+  AINDA_NAO_INICIOU: { icone:'⏳', titulo:'Ainda não disponível' },
+  PRAZO_EXPIRADO:  { icone:'⏰', titulo:'Prazo expirado' },
+  NAO_ENCONTRADO:  { icone:'❓', titulo:'Não encontrado' },
+};
+
+function mostrarEstado(codigo, mensagem) {
+  document.getElementById('tela-carregando').style.display = 'none';
+  document.getElementById('tela-estado').style.display = '';
+  const e = ESTADOS[codigo] || { icone:'⚠️', titulo:'Indisponível' };
+  document.getElementById('estado-icone').textContent = e.icone;
+  document.getElementById('estado-titulo').textContent = e.titulo;
+  document.getElementById('estado-mensagem').textContent = mensagem || '';
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function salvarRespostaInput(perguntaId, valor) {
+  respostas[perguntaId] = valor;
+  Rascunho.salvar(FORM_ID, respostas);
+  limparErro(perguntaId);
+}
+
+function restaurarRespostas() {
+  Object.entries(respostas).forEach(([id, val]) => {
+    const el = document.querySelector('[data-pergunta-id="' + id + '"]');
+    if (!el) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+      el.value = Array.isArray(val) ? val.join(', ') : (val || '');
+    }
+  });
+}
+
+function inicializarCanvases() {
+  document.querySelectorAll('.canvas-assinatura').forEach(c => {
+    const id = c.id.replace('canvas_', '');
+    if (!canvasInstancias[id]) canvasInstancias[id] = new CanvasAssinatura(c);
+  });
+}
+
+function embaralhar(arr, ativo) {
+  if (!ativo) return arr;
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+/* ── Auto-ajuste de altura quando incorporado em outra página (iframe) ── */
+let _ultimaAltura = 0;
+let _embedAjustado = false;
+function _postarAltura() {
+  try {
+    // Só faz sentido quando o form está dentro de um iframe de outra página
+    if (!(window.top && window.top !== window)) return;
+    if (!_embedAjustado && document.body) {
+      // O CSS tem body{min-height:100vh}; dentro do iframe isso infla a medição
+      // e gera loop de crescimento. Neutraliza só no modo incorporado.
+      document.body.style.minHeight = 'auto';
+      _embedAjustado = true;
+    }
+    // Medir apenas o conteúdo do body (NÃO documentElement, que estica até o iframe)
+    const h = document.body ? document.body.scrollHeight : 0;
+    // Só reenvia em mudança real (>4px) — evita oscilação/loop
+    if (h > 0 && Math.abs(h - _ultimaAltura) > 4) {
+      _ultimaAltura = h;
+      window.top.postMessage({ seturForm: true, formId: FORM_ID, height: h }, '*');
+    }
+  } catch (e) { /* silencioso */ }
+}
+
+/* ── Boot ─────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  inicializar();
+  window.addEventListener('resize', _postarAltura);
+  setInterval(_postarAltura, 600);
+});
+</script>
+</body>
+</html>

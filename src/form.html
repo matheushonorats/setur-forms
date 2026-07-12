@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="description" content="Formulário online">
+  <title><?= titulo ?></title>
+  <?!= include('css') ?>
+  <style>
+    .form-cabecalho {
+      border-radius: var(--raio) var(--raio) 0 0;
+      padding: 32px;
+      background: var(--cor-primaria);
+      color: #fff;
+    }
+    .form-cabecalho img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 16px; }
+    .form-cabecalho h1 { color: #fff; font-size: 1.5rem; margin-bottom: 8px; }
+    .form-cabecalho p  { color: rgba(255,255,255,0.85); font-size: 0.9375rem; margin: 0; }
+    .form-body   { background: var(--cor-fundo); border-radius: 0 0 var(--raio) var(--raio); }
+    .form-secao  { padding: 24px 32px; }
+    @media(max-width:480px){ .form-secao{ padding:16px; } .form-cabecalho{ padding:20px; } }
+    .secao-titulo { font-size:1rem; font-weight:600; color:var(--cor-texto-soft); text-transform:uppercase; letter-spacing:.06em; margin-bottom:20px; padding-bottom:8px; border-bottom:1px solid var(--cor-borda); }
+    .navegacao { display:flex; justify-content:space-between; align-items:center; padding:20px 32px; border-top:1px solid var(--cor-borda); }
+    @media(max-width:480px){ .navegacao{ padding:16px; } }
+    .tela-estado { text-align:center; padding:60px 32px; }
+    .tela-estado .icone { font-size:4rem; margin-bottom:20px; }
+    .tela-estado h2 { margin-bottom:12px; }
+    .tela-estado p  { color:var(--cor-texto-soft); max-width:400px; margin:0 auto; }
+    .honeyport { display:none !important; visibility:hidden; }
+    .grade-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    .grade-table th { text-align:left; padding:8px; background:var(--cor-fundo); font-weight:500; font-size:.8125rem; color:var(--cor-texto-soft); }
+    .grade-table td { padding:8px; border-bottom:1px solid var(--cor-borda); }
+    .grade-table input { accent-color:var(--cor-primaria); }
+    .contador-chars { font-size:.75rem; color:var(--cor-texto-soft); text-align:right; margin-top:3px; }
+    .retry-banner { background:#fff3cd; border:1px solid #f9a825; border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; align-items:center; gap:12px; font-size:.9rem; }
+    .rascunho-banner { background:#e8f0fe; border:1px solid #aecbfa; border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; font-size:.875rem; }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- Estado: carregando -->
+<div id="tela-carregando" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div style="text-align:center;color:var(--cor-texto-soft);">
+    <div class="spinner spinner--dark" style="width:36px;height:36px;margin:0 auto 16px;"></div>
+    <p>Carregando formulário...</p>
+  </div>
+</div>
+
+<!-- Tela de estado (pausado/encerrado/etc) -->
+<div id="tela-estado" style="display:none;padding-top:40px;" class="container">
+  <div class="card tela-estado">
+    <div class="icone" id="estado-icone">⚠️</div>
+    <h2 id="estado-titulo">Formulário indisponível</h2>
+    <p id="estado-mensagem"></p>
+  </div>
+</div>
+
+<!-- Formulário principal -->
+<div id="tela-form" style="display:none;">
+  <div class="container" style="padding-top:32px;padding-bottom:48px;">
+    <!-- Rascunho -->
+    <div id="rascunho-banner" class="rascunho-banner" style="display:none;">
+      <span>📝 Encontramos um rascunho salvo. Deseja continuar de onde parou?</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn--sm btn--primary" onclick="carregarRascunho()">Sim, continuar</button>
+        <button class="btn btn--sm btn--ghost" onclick="descartarRascunho()">Descartar</button>
+      </div>
+    </div>
+
+    <!-- Retry -->
+    <div id="retry-banner" class="retry-banner" style="display:none;">
+      ⚠️ <span id="retry-msg">Ocorreu um erro ao enviar. Tente novamente.</span>
+      <button class="btn btn--sm btn--primary" onclick="reenviar()">Tentar novamente</button>
+    </div>
+
+
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <!-- Cabeçalho -->
+      <div class="form-cabecalho" id="form-cabecalho">
+        <img id="form-img-cabecalho" src="" alt="" style="display:none;">
+        <h1 id="form-titulo"></h1>
+        <p id="form-descricao"></p>
+        
+        <!-- Banner de prazo/contagem regressiva (Discreto Glassmorphism integrado) -->
+        <style>
+          .count-box-discreto {
+            min-width: 32px;
+            height: 34px;
+            background: linear-gradient(to bottom, rgba(30, 30, 30, 0.22) 0%, rgba(10, 10, 10, 0.32) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 1.25rem;
+            font-weight: 800;
+            padding: 0 4px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1;
+          }
+          
+          /* Linha divisória horizontal estática e discreta estilo plaquinha */
+          .count-box-discreto::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+          }
+          
+          /* Efeito discreto e fluido de deslizar e fade na mudança */
+          @keyframes discrete-tick {
+            0% {
+              transform: translateY(-2px);
+              opacity: 0.6;
+            }
+            100% {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          
+          .count-box-discreto.tick {
+            animation: discrete-tick 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          }
+        </style>
+        <div id="banner-prazo" style="display:none;margin-top:16px;padding:12px 16px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.16);border-radius:10px;color:inherit;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+          <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;">
+            <span id="banner-prazo-texto" style="font-weight:600;font-size:0.85rem;opacity:0.95;">Prazo:</span>
+            <span id="banner-prazo-data-extensa" style="font-size:0.75rem;opacity:0.8;"></span>
+          </div>
+          <div id="banner-prazo-contador-wrapper" style="display:flex;align-items:center;gap:4px;user-select:none;">
+            <!-- Dias -->
+            <div id="wrapper-count-d" style="display:none;align-items:center;gap:4px;">
+              <div style="display:flex;flex-direction:column;align-items:center;">
+                <div id="count-d" class="count-box-discreto">00</div>
+                <span style="font-size:0.55rem;font-weight:600;margin-top:4px;opacity:0.85;text-transform:uppercase;">d</span>
+              </div>
+              <span style="font-size:1rem;font-weight:700;margin-top:-14px;opacity:0.7;">:</span>
+            </div>
+            <!-- Horas -->
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div id="count-h" class="count-box-discreto">00</div>
+              <span style="font-size:0.55rem;font-weight:600;margin-top:4px;opacity:0.85;text-transform:uppercase;">h</span>
+            </div>
+            <span style="font-size:1rem;font-weight:700;margin-top:-14px;opacity:0.7;">:</span>
+            <!-- Minutos -->
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div id="count-m" class="count-box-discreto">00</div>
+              <span style="font-size:0.55rem;font-weight:600;margin-top:4px;opacity:0.85;text-transform:uppercase;">m</span>
+            </div>
+            <span style="font-size:1rem;font-weight:700;margin-top:-14px;opacity:0.7;">:</span>
+            <!-- Segundos -->
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div id="count-s" class="count-box-discreto" style="color:#ffe066;">00</div>
+              <span style="font-size:0.55rem;font-weight:600;margin-top:4px;opacity:0.85;text-transform:uppercase;">s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de progresso -->
+      <div style="padding:0 32px;padding-top:20px;" id="wrap-progresso">
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="barra-progresso" style="width:0%"></div>
+        </div>
+        <p style="font-size:.8125rem;color:var(--cor-texto-soft);margin-bottom:0;text-align:right;" id="texto-progresso"></p>
+      </div>
+
+      <!-- Corpo do formulário (seções renderizadas dinamicamente) -->
+      <div class="form-body">
+        <div id="secao-atual" class="form-secao"></div>
+        <div class="navegacao">
+          <button class="btn btn--secondary" id="btn-voltar" onclick="voltarSecao()" style="display:none;">← Voltar</button>
+          <div></div>
+          <button class="btn btn--primary" id="btn-avancar" onclick="avancarOuEnviar()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé do formulário -->
+    <div id="form-rodape" style="text-align:center;margin-top:24px;display:none;">
+      <img id="form-img-rodape" src="" alt="" style="max-width:100%;max-height:100px;object-fit:contain;border-radius:8px;">
+    </div>
+  </div>
+</div>
+
+<!-- Tela de confirmação -->
+<div id="tela-confirmacao" style="display:none;" class="container">
+  <div class="card tela-estado" style="margin-top:40px;">
+    <div class="icone">✅</div>
+    <div id="mensagem-confirmacao"></div>
+    <p style="margin-top:16px;font-size:.875rem;color:var(--cor-texto-soft);" id="resposta-id-texto"></p>
+  </div>
+</div>
+
+<!-- Campo honeypot oculto (anti-bot) -->
+<div class="honeyport" aria-hidden="true">
+  <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off">
+</div>
+
+<?!= include('js-utils') ?>
+<?!= include('js-validators') ?>
+
+<script>
+/* ── Estado global ───────────────────────────────────────── */
+const FORM_ID = <?!= JSON.stringify(formId) ?>;
+const TOKEN_EDICAO = <?!= JSON.stringify(tokenEdicao || '') ?>;
+
+let formConfig = null;
+let secaoAtual = 0;
+let respostas = {};
+let nonce = null;
+let tsInicio = Date.now();
+let canvasInstancias = {};
+let tentativaPayload = null; // Para retry de rede
+let userIp = '';
+let _ipPromise = null; // Promise do IP para aguardar no submit se ainda não resolvida
+
+
+/* ── Inicialização ───────────────────────────────────────── */
+async function inicializar() {
+  try {
+    // Obter IP em segundo plano (sem travar carregamento do form)
+    // Salvamos a promise para poder awaitar no submit se ainda não resolveu
+    _ipPromise = fetch('https://api.ipify.org?format=json')
+      .then(r => r.json())
+      .then(data => { userIp = data.ip || ''; })
+      .catch(() => { userIp = ''; }); // Silencia erro — IP é opcional
+
+    const res = await API.call('obterFormularioPublico', { formId: FORM_ID });
+
+    if (!res.ok) {
+      mostrarEstado(res.codigo, res.error);
+      return;
+    }
+
+    formConfig = res.data;
+    // configJSON/tema chegam como string (evita falha de serialização do google.script.run) — fazer parse
+    try { if (typeof formConfig.configJSON === 'string') formConfig.configJSON = JSON.parse(formConfig.configJSON || '{}'); } catch (e) { formConfig.configJSON = { secoes: [] }; }
+    try { if (typeof formConfig.tema === 'string') formConfig.tema = JSON.parse(formConfig.tema || '{}'); } catch (e) { formConfig.tema = {}; }
+    aplicarTema(formConfig.tema);
+
+    // Verificar rascunho
+    const rascunho = Rascunho.carregar(FORM_ID);
+    if (rascunho && Object.keys(rascunho).length > 0) {
+      respostas = rascunho;
+      DOM.mostrar(document.getElementById('rascunho-banner'));
+    }
+
+    // Obter nonce
+    const nonceRes = await API.call('gerarNonce', { formId: FORM_ID });
+    nonce = nonceRes.ok ? nonceRes.data.nonce : null;
+
+    // Se for edição
+    if (TOKEN_EDICAO) {
+      await carregarParaEdicao();
+    }
+
+    renderizarFormulario();
+    document.getElementById('tela-carregando').style.display = 'none';
+    document.getElementById('tela-form').style.display = '';
+  } catch (err) {
+    console.error('Erro na inicialização:', err);
+    mostrarEstado('ERRO_INTERNO', 'Ocorreu um erro ao carregar o formulário: ' + err.message);
+  }
+}
+
+function carregarRascunho() {
+  DOM.ocultar(document.getElementById('rascunho-banner'));
+  renderizarSecao(); // Re-renderiza com valores do rascunho
+  Toast.info('Rascunho carregado.');
+}
+
+function descartarRascunho() {
+  // Identificar e apagar do Drive todos os arquivos que foram anexados neste rascunho
+  Object.values(respostas).forEach(val => {
+    if (typeof val === 'string' && val.includes('drive.google.com/file/d/')) {
+      API.call('deletarArquivoUpload', { url: val });
+    }
+  });
+
+  respostas = {};
+  Rascunho.limpar(FORM_ID);
+  DOM.ocultar(document.getElementById('rascunho-banner'));
+  renderizarSecao(); // Limpa e atualiza visualmente os campos do formulário na tela
+}
+
+async function carregarParaEdicao() {
+  const res = await API.call('carregarRespostaParaEdicao', { token: TOKEN_EDICAO });
+  if (res.ok) {
+    respostas = res.data.respostas || {};
+    Toast.info('Resposta carregada para edição.');
+  }
+}
+
+/* ── Tema Visual ─────────────────────────────────────────── */
+function aplicarTema(tema) {
+  if (!tema) return;
+  const r = document.documentElement.style;
+  if (tema.corPrimaria)    r.setProperty('--cor-primaria', tema.corPrimaria);
+  if (tema.corFundo)       r.setProperty('--cor-fundo', tema.corFundo);
+  if (tema.corTexto)       r.setProperty('--cor-texto', tema.corTexto);
+  if (tema.corCard)        r.setProperty('--cor-card', tema.corCard);
+  if (tema.bordaArredondada) r.setProperty('--raio', tema.bordaArredondada);
+  if (tema.fonte) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    // String concatenada (não template literal): "//" dentro de crase quebra a serialização do GAS.
+    link.href = 'https://fonts.googleapis.com/css2?family=' + tema.fonte.split(' ').join('+') + ':wght@400;500;600;700&display=swap';
+    document.head.appendChild(link);
+    r.setProperty('--fonte', "'" + tema.fonte + "', sans-serif");
+  }
+  if (tema.cssExtra) {
+    const style = document.createElement('style');
+    style.textContent = tema.cssExtra;
+    document.head.appendChild(style);
+  }
+  document.getElementById('form-cabecalho').style.background = tema.corPrimaria || '';
+  if (tema.imagemCabecalho) {
+    const img = document.getElementById('form-img-cabecalho');
+    img.src = tema.imagemCabecalho;
+    img.style.display = '';
+  } else {
+    document.getElementById('form-img-cabecalho').style.display = 'none';
+  }
+  if (tema.imagemFundo) {
+    document.body.style.backgroundImage = "url('" + tema.imagemFundo + "')";
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+  } else {
+    document.body.style.backgroundImage = 'none';
+  }
+  if (tema.imagemRodape) {
+    const rodape = document.getElementById('form-rodape');
+    const imgRodape = document.getElementById('form-img-rodape');
+    imgRodape.src = tema.imagemRodape;
+    rodape.style.display = 'block';
+  } else {
+    document.getElementById('form-rodape').style.display = 'none';
+  }
+}
+
+/* ── Renderização ─────────────────────────────────────────── */
+function renderizarFormulario() {
+  const cfg = formConfig.configJSON;
+  document.getElementById('form-titulo').innerHTML = formConfig.titulo;
+  document.getElementById('form-descricao').innerHTML = formConfig.descricao || '';
+  document.title = String(formConfig.titulo || 'Formulário').replace(/<[^>]*>/g, '').trim() || 'Formulário';
+
+  // Link de edital
+  const linkEdital = cfg.configuracoes && cfg.configuracoes.linkEdital;
+  const textoEdital = (cfg.configuracoes && cfg.configuracoes.textoLinkEdital) || 'Clique aqui para ler o edital';
+  let elEdital = document.getElementById('form-link-edital');
+  if (linkEdital) {
+    let urlEdital = linkEdital.trim();
+    // Resolver URLs sem protocolo (ex: www.site.com) para evitar que o navegador tente abrir como caminho relativo
+    if (urlEdital && !/^https?:\/\//i.test(urlEdital)) {
+      urlEdital = 'https://' + urlEdital;
+    }
+    if (!elEdital) {
+      elEdital = document.createElement('div');
+      elEdital.id = 'form-link-edital';
+      elEdital.style.cssText = 'margin-top:8px;';
+      document.getElementById('form-descricao').insertAdjacentElement('afterend', elEdital);
+    }
+    elEdital.innerHTML = `<a href="${urlEdital}" target="_blank" rel="noopener noreferrer" style="color:inherit;font-size:.875rem;font-weight:500;text-decoration:underline;opacity:.85;">📄 ${textoEdital}</a>`;
+  } else if (elEdital) {
+    elEdital.innerHTML = '';
+  }
+
+  // Banner de prazo
+  // Se houver data limite, sempre inicializamos pois pode haver promoção automática nas últimas 48h
+  if (formConfig.dataLimite) {
+    _initBannerPrazo(formConfig.dataLimite);
+  }
+
+  secaoAtual = 0;
+  renderizarSecao();
+}
+
+function _initBannerPrazo(dataLimite) {
+  const limite = new Date(dataLimite);
+  const banner = document.getElementById('banner-prazo');
+  if (!banner || isNaN(limite.getTime())) return;
+
+  const cfg = (formConfig.configJSON && formConfig.configJSON.configuracoes) || {};
+  
+  // Mapeia configurações de prazo do formConfig. Se não existirem (legado), usa a flag antiga
+  const modoConfig = cfg.modoExibicaoPrazo || (cfg.exibirBannerPrazo ? 'CONTAGEM' : 'OCULTO');
+  const autoPromover = cfg.autoPromoverPrazo !== false; // padrão true
+  const textoInformativo = cfg.textoBannerPrazo || 'Prazo de encerramento:';
+
+  if (modoConfig === 'OCULTO') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  // Preencher textos básicos
+  const dataFmt = limite.toLocaleDateString('pt-BR') + ' às ' + limite.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('banner-prazo-texto').textContent = textoInformativo;
+  document.getElementById('banner-prazo-data-extensa').textContent = dataFmt;
+
+  function atualizarElemento(id, novoValor) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const novoValorStr = String(novoValor);
+
+    if (el.textContent !== novoValorStr) {
+      el.textContent = novoValorStr;
+      el.classList.remove('tick');
+      void el.offsetWidth; // Força repaint
+      el.classList.add('tick');
+    }
+  }
+
+  function atualizar() {
+    const agora = new Date();
+    const diff = limite - agora;
+    if (diff <= 0) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    banner.style.display = 'flex';
+
+    // Se modo for APENAS_DATA e tiver autoPromover ativo e diff <= 48h, promove para contagem regressiva
+    const h48 = 48 * 60 * 60 * 1000;
+    const exibirContagem = (modoConfig === 'CONTAGEM') || (modoConfig === 'APENAS_DATA' && autoPromover && diff <= h48);
+
+    const contagemWrapper = document.getElementById('banner-prazo-contador-wrapper');
+    if (exibirContagem) {
+      contagemWrapper.style.display = 'flex';
+
+      const dias = Math.floor(diff / (24 * 60 * 60 * 1000));
+      const horas = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const minutos = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+      const segundos = Math.floor((diff % (60 * 1000)) / 1000);
+
+      const wrapD = document.getElementById('wrapper-count-d');
+      if (dias > 0) {
+        atualizarElemento('count-d', String(dias).padStart(2, '0'));
+        wrapD.style.display = 'flex';
+      } else {
+        wrapD.style.display = 'none';
+      }
+
+      atualizarElemento('count-h', String(horas).padStart(2, '0'));
+      atualizarElemento('count-m', String(minutos).padStart(2, '0'));
+      atualizarElemento('count-s', String(segundos).padStart(2, '0'));
+    } else {
+      contagemWrapper.style.display = 'none';
+    }
+  }
+
+  // Limpa qualquer intervalo ativo anterior no banner (evita timers duplicados em SPA/navegação de seções)
+  if (window._bannerPrazoInterval) {
+    clearInterval(window._bannerPrazoInterval);
+  }
+
+  atualizar();
+  window._bannerPrazoInterval = setInterval(atualizar, 1000);
+}
+
+
+function renderizarSecao() {
+  const cfg = formConfig.configJSON;
+  const secoes = cfg.secoes || [];
+  const secao = secoes[secaoAtual];
+  if (!secao) return;
+
+  const total = secoes.length;
+  const pct = total > 1 ? Math.round(((secaoAtual) / (total - 1)) * 100) : (secaoAtual === 0 ? 0 : 100);
+  document.getElementById('barra-progresso').style.width = pct + '%';
+  document.getElementById('texto-progresso').textContent =
+    total > 1 ? ('Seção ' + (secaoAtual + 1) + ' de ' + total) : '';
+  document.getElementById('wrap-progresso').style.display = total > 1 ? '' : 'none';
+
+  const container = document.getElementById('secao-atual');
+  container.innerHTML = '';
+
+  if (secao.titulo) {
+    const h = document.createElement('h3');
+    h.className = 'secao-titulo';
+    h.innerHTML = secao.titulo;
+    container.appendChild(h);
+  }
+
+  const perguntas = aplicarLogicaCondicional(secao.perguntas || [], cfg);
+  perguntas.forEach(pergunta => {
+    const el = renderizarPergunta(pergunta);
+    if (el) container.appendChild(el);
+  });
+
+  // Botões de navegação
+  const btnVoltar  = document.getElementById('btn-voltar');
+  const btnAvancar = document.getElementById('btn-avancar');
+  btnVoltar.style.display = secaoAtual > 0 ? '' : 'none';
+  const ultima = secaoAtual >= secoes.length - 1;
+  btnAvancar.textContent = ultima ? 'Enviar resposta ✓' : 'Próximo →';
+  btnAvancar.className = ultima ? 'btn btn--primary btn--lg' : 'btn btn--primary';
+
+  // Restaurar valores salvos
+  restaurarRespostas();
+  canvasInstancias = {};
+  inicializarCanvases();
+
+  // Forçar scroll para o topo do formulário no parent window (compatível com iframes do Google Apps Script)
+  if (typeof google !== 'undefined' && google.script && google.script.host && typeof google.script.host.scrollToTop === 'function') {
+    google.script.host.scrollToTop();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Postar mensagem de scroll para o parent iframe se incorporado em outro site
+  try {
+    if (window.top && window.top !== window) {
+      window.top.postMessage({ seturForm: true, formId: FORM_ID, action: 'scrollToTop' }, '*');
+    }
+  } catch (e) { /* silencioso */ }
+}
+
+function renderizarPergunta(p) {
+  if (p.tipo === 'SOMENTE_LEITURA') {
+    const div = document.createElement('div');
+    div.className = 'campo';
+    div.innerHTML = p.titulo || '';
+    return div;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'campo';
+  wrap.dataset.id = p.id;
+
+  const label = document.createElement('label');
+  label.className = 'campo__label';
+  label.setAttribute('for', 'campo_' + p.id);
+  label.innerHTML = (p.titulo || '') +
+    (p.obrigatoria ? '<span class="obrigatorio" aria-label="obrigatório">*</span>' : '');
+  wrap.appendChild(label);
+
+  if (p.descricao) {
+    const desc = document.createElement('p');
+    desc.className = 'campo__descricao';
+    desc.innerHTML = p.descricao;
+    wrap.appendChild(desc);
+  }
+
+  const input = criarInput(p);
+  if (input) wrap.appendChild(input);
+
+  return wrap;
+}
+
+function criarInput(p) {
+  switch(p.tipo) {
+    case 'RESPOSTA_CURTA': {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'campo__input';
+      input.id = 'campo_' + p.id;
+      input.dataset.perguntaId = p.id;
+      if (p.validacao && p.validacao.tipo !== 'LIVRE') {
+        Mascaras.aplicar(input, p.validacao.tipo);
+        if (p.validacao.tipo === 'EMAIL') input.type = 'email';
+        if (p.validacao.tipo === 'NUMERO') input.type = 'number';
+      }
+      input.addEventListener('change', () => salvarRespostaInput(p.id, input.value));
+      return input;
+    }
+    case 'PARAGRAFO': {
+      const wrap = document.createElement('div');
+      const ta = document.createElement('textarea');
+      ta.className = 'campo__textarea';
+      ta.id = 'campo_' + p.id;
+      ta.dataset.perguntaId = p.id;
+      const limite = p.config && p.config.limiteCaracteres;
+      let cont = null;
+      if (limite) { ta.maxLength = limite; }
+      ta.addEventListener('input', () => {
+        salvarRespostaInput(p.id, ta.value);
+        if (limite && cont) cont.textContent = ta.value.length + '/' + limite;
+      });
+      wrap.appendChild(ta);
+      if (limite) {
+        cont = document.createElement('p');
+        cont.className = 'contador-chars';
+        cont.textContent = '0/' + limite;
+        wrap.appendChild(cont);
+      }
+      return wrap;
+    }
+    case 'MULTIPLA_ESCOLHA': {
+      const wrap = document.createElement('div');
+      const opcoes = embaralhar(p.opcoes || [], p.config && p.config.embaralharOpcoes);
+      const valorSalvo = respostas[p.id];
+      opcoes.forEach((op, idx) => {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'campo_' + p.id;
+        input.value = op;
+        input.id = 'campo_' + p.id + '_' + idx;
+        if (valorSalvo === op) {
+          input.checked = true;
+        }
+        input.addEventListener('change', () => salvarRespostaInput(p.id, op));
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.textContent = op;
+        label.appendChild(input);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      });
+      if (p.config && p.config.permitirOutro) {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'campo_' + p.id;
+        radio.value = '__outro__';
+        const eOutro = valorSalvo !== undefined && !opcoes.includes(valorSalvo) && valorSalvo !== '';
+        if (eOutro) {
+          radio.checked = true;
+        }
+
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.appendChild(document.createTextNode('Outro: '));
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'campo__input';
+        textInput.style.marginTop = '6px';
+        textInput.id = 'outro_' + p.id;
+        textInput.placeholder = 'Especifique...';
+        textInput.value = eOutro ? valorSalvo : '';
+
+        textInput.addEventListener('input', () => {
+          radio.checked = true;
+          salvarRespostaInput(p.id, textInput.value);
+        });
+
+        radio.addEventListener('change', () => {
+          textInput.focus();
+          salvarRespostaInput(p.id, textInput.value);
+        });
+
+        span.appendChild(textInput);
+        label.appendChild(radio);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      }
+      return wrap;
+    }
+    case 'CAIXAS_SELECAO': {
+      const wrap = document.createElement('div');
+      const selecionados = new Set(Array.isArray(respostas[p.id]) ? respostas[p.id] : []);
+      let outroValor = '';
+
+      const obterOutroValorSalvo = () => {
+        const opcoes = p.opcoes || [];
+        const salvo = Array.isArray(respostas[p.id]) ? respostas[p.id] : [];
+        const outro = salvo.find(v => !opcoes.includes(v));
+        return outro || '';
+      };
+
+      outroValor = obterOutroValorSalvo();
+
+      const atualizarCheckboxRespostas = () => {
+        const valores = [...selecionados];
+        if (outroValor && document.getElementById('chk_outro_chk_' + p.id).checked) {
+          valores.push(outroValor);
+        }
+        salvarRespostaInput(p.id, valores);
+      };
+
+      (p.opcoes || []).forEach((op, idx) => {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = op;
+        if (selecionados.has(op)) {
+          input.checked = true;
+        }
+        input.addEventListener('change', () => {
+          if (input.checked) selecionados.add(op);
+          else selecionados.delete(op);
+          atualizarCheckboxRespostas();
+        });
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.textContent = op;
+        label.appendChild(input);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      });
+
+      if (p.config && p.config.permitirOutro) {
+        const label = document.createElement('label');
+        label.className = 'opcao';
+
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.id = 'chk_outro_chk_' + p.id;
+        const eOutro = outroValor !== '';
+        if (eOutro) {
+          chk.checked = true;
+        }
+
+        const span = document.createElement('span');
+        span.className = 'opcao__label';
+        span.appendChild(document.createTextNode('Outro: '));
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'campo__input';
+        textInput.style.marginTop = '6px';
+        textInput.id = 'outro_input_' + p.id;
+        textInput.placeholder = 'Especifique...';
+        textInput.value = outroValor;
+
+        textInput.addEventListener('input', () => {
+          outroValor = textInput.value;
+          chk.checked = true;
+          atualizarCheckboxRespostas();
+        });
+
+        chk.addEventListener('change', () => {
+          atualizarCheckboxRespostas();
+        });
+
+        span.appendChild(textInput);
+        label.appendChild(chk);
+        label.appendChild(span);
+        wrap.appendChild(label);
+      }
+      return wrap;
+    }
+    case 'LISTA_SUSPENSA': {
+      const sel = document.createElement('select');
+      sel.className = 'campo__select';
+      sel.id = 'campo_' + p.id;
+      sel.dataset.perguntaId = p.id;
+      sel.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: 'Selecione uma opção...' }));
+      (p.opcoes || []).forEach(op => {
+        sel.appendChild(Object.assign(document.createElement('option'), { value: op, textContent: op }));
+      });
+      sel.addEventListener('change', () => salvarRespostaInput(p.id, sel.value));
+      return sel;
+    }
+    case 'ESCALA_LINEAR': {
+      const cfg = p.config || {};
+      const min = cfg.min || 1, max = cfg.max || 5;
+      const wrap = document.createElement('div');
+      wrap.className = 'escala';
+      if (cfg.labelMin) wrap.appendChild(Object.assign(document.createElement('span'), { className: 'escala__label-ext', textContent: cfg.labelMin }));
+      for (let i = min; i <= max; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'escala__btn';
+        btn.textContent = i;
+        btn.addEventListener('click', () => {
+          wrap.querySelectorAll('.escala__btn').forEach(b => b.classList.remove('ativo'));
+          btn.classList.add('ativo');
+          salvarRespostaInput(p.id, i);
+        });
+        wrap.appendChild(btn);
+      }
+      if (cfg.labelMax) wrap.appendChild(Object.assign(document.createElement('span'), { className: 'escala__label-ext', textContent: cfg.labelMax }));
+      return wrap;
+    }
+    case 'AVALIACAO_ESTRELAS': {
+      const max = (p.config && p.config.max) || 5;
+      const wrap = document.createElement('div');
+      wrap.className = 'estrelas';
+      for (let i = 1; i <= max; i++) {
+        const span = document.createElement('span');
+        span.className = 'estrela';
+        span.textContent = '★';
+        span.dataset.val = i;
+        span.addEventListener('click', () => {
+          wrap.querySelectorAll('.estrela').forEach((s, idx) => s.classList.toggle('ativa', idx < i));
+          salvarRespostaInput(p.id, i);
+        });
+        wrap.appendChild(span);
+      }
+      return wrap;
+    }
+    case 'SLIDER_NUMERICO': {
+      const cfg = p.config || {};
+      const min = cfg.min || 0, max = cfg.max || 100, step = cfg.step || 1;
+      const wrap = document.createElement('div');
+      wrap.className = 'slider-wrap';
+      const range = document.createElement('input');
+      range.type = 'range';
+      range.min = min; range.max = max; range.step = step; range.value = min;
+      const valSpan = document.createElement('span');
+      valSpan.className = 'slider-valor';
+      valSpan.textContent = min;
+      range.addEventListener('input', () => {
+        valSpan.textContent = range.value;
+        salvarRespostaInput(p.id, parseFloat(range.value));
+      });
+      wrap.appendChild(range);
+      wrap.appendChild(valSpan);
+      return wrap;
+    }
+    case 'DATA':      return criarInputData(p, 'date');
+    case 'HORA':      return criarInputData(p, 'time');
+    case 'DATA_HORA': return criarInputData(p, 'datetime-local');
+    case 'UPLOAD_ARQUIVO': return criarUpload(p);
+    case 'ASSINATURA_CANVAS': return criarAssinatura(p);
+    case 'GRADE_MULTIPLA':
+    case 'GRADE_CAIXAS':     return criarGrade(p);
+    case 'ACEITE_TERMOS':    return criarAceiteTermos(p);
+    default: return null;
+  }
+}
+
+function criarAceiteTermos(p) {
+  const wrap = document.createElement('div');
+  const cfg = p.config || {};
+  const textoTermos = cfg.textoTermos || '';
+  const labelAceite = cfg.labelAceite || 'Li e aceito os termos acima';
+  const id = 'campo_' + p.id;
+
+  if (textoTermos) {
+    const caixa = document.createElement('div');
+    caixa.style.cssText = 'max-height:200px;overflow-y:auto;padding:12px;background:#f8f9fa;border:1px solid var(--cor-borda);border-radius:8px;font-size:.85rem;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;';
+    caixa.textContent = textoTermos;
+    wrap.appendChild(caixa);
+  }
+
+  const labelEl = document.createElement('label');
+  labelEl.style.cssText = 'display:flex;align-items:center;gap:10px;font-size:.9rem;cursor:pointer;';
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.id = id;
+  checkbox.dataset.perguntaId = p.id;
+  checkbox.style.cssText = 'width:18px;height:18px;cursor:pointer;accent-color:var(--cor-primaria);';
+  checkbox.addEventListener('change', () => {
+    respostas[p.id] = checkbox.checked ? 'aceito' : '';
+  });
+  labelEl.appendChild(checkbox);
+  labelEl.appendChild(document.createTextNode(labelAceite));
+  wrap.appendChild(labelEl);
+  return wrap;
+}
+
+function criarInputData(p, tipo) {
+  const input = document.createElement('input');
+  input.type = tipo;
+  input.className = 'campo__input';
+  input.id = 'campo_' + p.id;
+  input.dataset.perguntaId = p.id;
+  if (p.config && p.config.min) input.min = p.config.min;
+  if (p.config && p.config.max) input.max = p.config.max;
+  input.addEventListener('change', () => salvarRespostaInput(p.id, input.value));
+  return input;
+}
+
+function criarUpload(p) {
+  const wrap = document.createElement('div');
+  const area = document.createElement('div');
+  area.className = 'upload-area';
+  area.id = 'upload_area_' + p.id;
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.style.display = 'none';
+  const cfg = p.config || {};
+  const maxMB = parseInt(cfg.tamanhoMaxMB, 10) || 10;
+  
+  let formatos = [];
+  if (cfg.formatosAceitos) {
+    if (Array.isArray(cfg.formatosAceitos)) {
+      formatos = cfg.formatosAceitos;
+    } else if (typeof cfg.formatosAceitos === 'string') {
+      formatos = cfg.formatosAceitos.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  } else if (cfg.extensoesPermitidas) {
+    if (Array.isArray(cfg.extensoesPermitidas)) {
+      formatos = cfg.extensoesPermitidas;
+    } else if (typeof cfg.extensoesPermitidas === 'string') {
+      formatos = cfg.extensoesPermitidas.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  formatos = formatos.map(f => f.toLowerCase());
+
+  if (formatos.length) {
+    fileInput.accept = '.' + formatos.join(',.');
+  }
+
+  const formatosFmt = formatos.map(f => f.toUpperCase()).join(', ');
+  const limitesTexto = `Tamanho máximo: ${maxMB}MB.` + (formatos.length ? ` Formatos aceitos: ${formatosFmt}.` : '');
+
+  // Container de erro local para evitar sumiço em iframes com scroll externo
+  const elErro = document.createElement('div');
+  elErro.className = 'upload-erro-mensagem';
+  elErro.style.display = 'none';
+  elErro.style.color = '#d93025';
+  elErro.style.fontSize = '0.85rem';
+  elErro.style.marginTop = '8px';
+  elErro.style.fontWeight = '600';
+  elErro.style.textAlign = 'center';
+
+  function resetarAreaUpload() {
+    area.innerHTML = `
+      <div class="upload-area__icon">📎</div>
+      <p class="upload-area__texto">Clique para selecionar ou arraste o arquivo aqui</p>
+      <div class="upload-limites-texto">${limitesTexto}</div>
+    `;
+    area.style.cursor = 'pointer';
+  }
+
+  function carregarRespostaExistente() {
+    const savedUrl = respostas[p.id];
+    if (savedUrl) {
+      area.style.cursor = 'default';
+      
+      const ehImagem = /\.(jpg|jpeg|png|webp|gif|bmp)($|\?)/i.test(savedUrl);
+      let previewHtml = '';
+      if (ehImagem) {
+        previewHtml = `<img src="${savedUrl}" class="upload-image-preview" onerror="this.src='https://cdn-icons-png.flaticon.com/512/337/337940.png';" />`;
+      } else {
+        previewHtml = `<div class="upload-area__icon">📄</div>`;
+      }
+      
+      area.innerHTML = `
+        <div class="upload-success-container" onclick="event.stopPropagation()">
+          ${previewHtml}
+          <div class="upload-file-details">
+            <span class="upload-file-name">✅ Arquivo anexado!</span>
+            <a href="${savedUrl}" target="_blank" class="upload-view-link">Visualizar arquivo enviado ↗</a>
+            <button type="button" class="upload-remove-btn" style="margin-top: 8px;">Remover arquivo</button>
+          </div>
+        </div>
+      `;
+      
+      const btnRemove = area.querySelector('.upload-remove-btn');
+      if (btnRemove) {
+        btnRemove.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const urlParaDeletar = respostas[p.id];
+          salvarRespostaInput(p.id, '');
+          fileInput.value = '';
+          elErro.style.display = 'none';
+          elErro.textContent = '';
+          resetarAreaUpload();
+          
+          if (urlParaDeletar) {
+            await API.call('deletarArquivoUpload', { url: urlParaDeletar });
+          }
+        });
+      }
+    } else {
+      resetarAreaUpload();
+    }
+  }
+
+  area.addEventListener('click', () => {
+    if (!respostas[p.id]) {
+      fileInput.click();
+    }
+  });
+
+  area.addEventListener('dragover', e => { 
+    e.preventDefault(); 
+    if (!respostas[p.id]) area.classList.add('dragover'); 
+  });
+  
+  area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+  
+  area.addEventListener('drop', e => { 
+    e.preventDefault(); 
+    area.classList.remove('dragover'); 
+    if (!respostas[p.id] && e.dataTransfer.files[0]) {
+      elErro.style.display = 'none';
+      processorUpload(e.dataTransfer.files[0], p, area, fileInput, resetarAreaUpload, carregarRespostaExistente, elErro);
+    }
+  });
+
+  fileInput.addEventListener('change', () => { 
+    if (fileInput.files[0]) {
+      elErro.style.display = 'none';
+      processorUpload(fileInput.files[0], p, area, fileInput, resetarAreaUpload, carregarRespostaExistente, elErro);
+    } 
+  });
+
+  wrap.appendChild(fileInput);
+  wrap.appendChild(area);
+  wrap.appendChild(elErro);
+  
+  carregarRespostaExistente();
+  return wrap;
+}
+
+async function processorUpload(file, p, area, fileInput, resetarAreaUpload, carregarRespostaExistente, elErro) {
+  if (!file) return;
+  const cfg = p.config || {};
+  const maxMB = parseInt(cfg.tamanhoMaxMB, 10) || 10;
+  
+  let formatos = [];
+  if (cfg.formatosAceitos) {
+    if (Array.isArray(cfg.formatosAceitos)) {
+      formatos = cfg.formatosAceitos;
+    } else if (typeof cfg.formatosAceitos === 'string') {
+      formatos = cfg.formatosAceitos.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  } else if (cfg.extensoesPermitidas) {
+    if (Array.isArray(cfg.extensoesPermitidas)) {
+      formatos = cfg.extensoesPermitidas;
+    } else if (typeof cfg.extensoesPermitidas === 'string') {
+      formatos = cfg.extensoesPermitidas.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  formatos = formatos.map(f => f.toLowerCase());
+
+  // Validar formato
+  if (formatos.length) {
+    const ext = file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase();
+    if (!formatos.includes(ext)) {
+      const msg = `Formato inválido (".${ext}"). Permitidos: ` + formatos.join(', ').toUpperCase();
+      elErro.textContent = msg;
+      elErro.style.display = 'block';
+      Toast.erro(msg);
+      fileInput.value = '';
+      return;
+    }
+  }
+
+  // Validar tamanho
+  if (file.size > maxMB * 1024 * 1024) {
+    const msg = `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite máximo: ${maxMB}MB.`;
+    elErro.textContent = msg;
+    elErro.style.display = 'block';
+    Toast.erro(msg);
+    fileInput.value = '';
+    return;
+  }
+
+  area.style.cursor = 'default';
+  area.innerHTML = '<div class="upload-area__icon"><span class="spinner spinner--dark"></span></div><p class="upload-area__texto">Enviando arquivo...</p>';
+
+  // Mostrar preview da imagem local enquanto envia
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      area.innerHTML = `
+        <div class="upload-success-container">
+          <img src="${e.target.result}" class="upload-image-preview" />
+          <div class="upload-file-details">
+            <span class="upload-file-name">Enviando "${file.name}"...</span>
+            <div class="spinner spinner--dark" style="margin-top: 8px;"></div>
+          </div>
+        </div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+
+    const result = await API.call('uploadArquivo', {
+      formId: FORM_ID, perguntaId: p.id,
+      base64Data: base64, nomeArquivo: file.name,
+      mimeType: file.type,
+    });
+
+    if (result.ok) {
+      salvarRespostaInput(p.id, result.data.url);
+      carregarRespostaExistente();
+      Toast.sucesso('Arquivo enviado com sucesso!');
+    } else {
+      resetarAreaUpload();
+      fileInput.value = '';
+      elErro.textContent = result.error || 'Erro ao realizar upload do arquivo.';
+      elErro.style.display = 'block';
+      Toast.erro(result.error || 'Erro ao realizar upload.');
+    }
+  } catch (err) {
+    resetarAreaUpload();
+    fileInput.value = '';
+    elErro.textContent = 'Falha no processamento: ' + err.message;
+    elErro.style.display = 'block';
+    Toast.erro('Falha no processamento: ' + err.message);
+  }
+}
+
+function criarAssinatura(p) {
+  const wrap = document.createElement('div');
+  wrap.className = 'canvas-wrap';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'canvas-assinatura';
+  canvas.id = 'canvas_' + p.id;
+  const btnLimpar = document.createElement('button');
+  btnLimpar.type = 'button';
+  btnLimpar.className = 'canvas-limpar';
+  btnLimpar.textContent = '✖ Limpar assinatura';
+  btnLimpar.onclick = () => canvasInstancias[p.id] && canvasInstancias[p.id].limpar();
+  wrap.appendChild(canvas);
+  wrap.appendChild(btnLimpar);
+  setTimeout(() => {
+    const inst = new CanvasAssinatura(canvas);
+    canvasInstancias[p.id] = inst;
+  }, 50);
+  return wrap;
+}
+
+function criarGrade(p) {
+  const eh_caixa = p.tipo === 'GRADE_CAIXAS';
+  const linhas = p.config && p.config.linhas || [];
+  const colunas = p.config && p.config.colunas || [];
+  const table = document.createElement('table');
+  table.className = 'grade-table';
+  const thead = table.createTHead();
+  const tr = thead.insertRow();
+  tr.appendChild(document.createElement('th'));
+  colunas.forEach(col => { const th = document.createElement('th'); th.textContent = col; tr.appendChild(th); });
+  const tbody = table.createTBody();
+  linhas.forEach(lin => {
+    const row = tbody.insertRow();
+    const td0 = row.insertCell();
+    td0.textContent = lin;
+    colunas.forEach(col => {
+      const td = row.insertCell();
+      const input = document.createElement('input');
+      input.type = eh_caixa ? 'checkbox' : 'radio';
+      if (!eh_caixa) input.name = 'grade_' + p.id + '_' + lin;
+      input.style.accentColor = 'var(--cor-primaria)';
+      input.addEventListener('change', () => {
+        const val = respostas[p.id] || {};
+        if (eh_caixa) {
+          if (!val[lin]) val[lin] = [];
+          if (input.checked) { if (!val[lin].includes(col)) val[lin].push(col); }
+          else val[lin] = val[lin].filter(c => c !== col);
+        } else {
+          val[lin] = col;
+        }
+        salvarRespostaInput(p.id, val);
+      });
+      td.appendChild(input);
+    });
+  });
+  return table;
+}
+
+/* ── Lógica Condicional ──────────────────────────────────── */
+function aplicarLogicaCondicional(perguntas, cfg) {
+  const regras = cfg.logicaCondicional || [];
+  return perguntas.filter(p => {
+    const regra = regras.find(r => r.acao === 'OCULTAR_PERGUNTA' && r.destino === p.id);
+    if (!regra) return true;
+    const valorAtual = respostas[regra.perguntaOrigem];
+    const condicaoVerdadeira = avaliarCondicao(valorAtual, regra.operador, regra.valor);
+    return !condicaoVerdadeira; // Ocultar = não mostrar quando condição verdadeira = mostrar quando false
+  });
+}
+
+function avaliarCondicao(valorAtual, operador, valorEsperado) {
+  const a = String(valorAtual || '').toLowerCase();
+  const b = String(valorEsperado || '').toLowerCase();
+  switch(operador) {
+    case 'IGUAL':        return a === b;
+    case 'DIFERENTE':    return a !== b;
+    case 'CONTEM':       return a.includes(b);
+    case 'NAO_CONTEM':   return !a.includes(b);
+    case 'PREENCHIDO':   return a !== '';
+    case 'VAZIO':        return a === '';
+    default:             return false;
+  }
+}
+
+/* ── Navegação ───────────────────────────────────────────── */
+function voltarSecao() {
+  if (secaoAtual > 0) { secaoAtual--; renderizarSecao(); window.scrollTo(0,0); }
+}
+
+async function avancarOuEnviar() {
+  const secoes = formConfig.configJSON.secoes || [];
+  if (!validarSecaoAtual()) return;
+
+  // Verificar lógica de pulo de seção
+  const regras = formConfig.configJSON.logicaCondicional || [];
+  let proxima = secaoAtual + 1;
+  regras.forEach(r => {
+    if (r.acao === 'IR_PARA_SECAO' && respostas[r.perguntaOrigem] !== undefined) {
+      if (avaliarCondicao(respostas[r.perguntaOrigem], r.operador, r.valor)) {
+        const idx = secoes.findIndex(s => s.id === r.destino);
+        if (idx >= 0) proxima = idx;
+      }
+    }
+  });
+
+  if (proxima < secoes.length) {
+    secaoAtual = proxima;
+    renderizarSecao();
+    window.scrollTo(0,0);
+  } else {
+    await enviarFormulario();
+  }
+}
+
+/* ── Validação Client-Side ───────────────────────────────── */
+function validarSecaoAtual() {
+  const secoes = formConfig.configJSON.secoes || [];
+  const secao = secoes[secaoAtual];
+  const perguntas = secao ? secao.perguntas || [] : [];
+  let valido = true;
+
+  perguntas.forEach(p => {
+    if (p.tipo === 'SOMENTE_LEITURA') return;
+    const valor = respostas[p.id];
+    const vazio = valor === undefined ||
+                  valor === null ||
+                  (Array.isArray(valor) && valor.length === 0) ||
+                  (typeof valor === 'object' && Object.keys(valor).length === 0) ||
+                  (valor !== 0 && String(valor).trim() === '');
+
+    const deveSerObrigatorio = p.obrigatoria || p.tipo === 'ACEITE_TERMOS';
+    if (deveSerObrigatorio && vazio) {
+      marcarErro(p.id, p.tipo === 'ACEITE_TERMOS' ? 'Você deve aceitar os termos para prosseguir.' : 'Este campo é obrigatório.');
+      valido = false;
+      return;
+    }
+    if (!vazio && p.validacao && p.validacao.tipo !== 'LIVRE') {
+      const err = Validadores.porTipo(String(valor), p.validacao.tipo, p.validacao.regex);
+      if (err) { marcarErro(p.id, err); valido = false; }
+      else limparErro(p.id);
+    }
+  });
+
+  if (!valido) {
+    const primeiro = document.querySelector('.campo__input--erro, .campo__select--erro, .campo__textarea--erro');
+    if (primeiro) primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  return valido;
+}
+
+function marcarErro(perguntaId, msg) {
+  const wrap = document.querySelector('[data-id="' + perguntaId + '"]');
+  if (!wrap) return;
+  let erroEl = wrap.querySelector('.campo__erro');
+  if (!erroEl) { erroEl = document.createElement('p'); erroEl.className = 'campo__erro'; wrap.appendChild(erroEl); }
+  erroEl.textContent = '⚠ ' + msg;
+  const inp = wrap.querySelector('input,textarea,select');
+  if (inp) inp.classList.add('campo__input--erro');
+}
+
+function limparErro(perguntaId) {
+  const wrap = document.querySelector('[data-id="' + perguntaId + '"]');
+  if (!wrap) return;
+  const erroEl = wrap.querySelector('.campo__erro');
+  if (erroEl) erroEl.remove();
+  const inputEl = wrap.querySelector('.campo__input--erro');
+  if (inputEl) inputEl.classList.remove('campo__input--erro');
+}
+
+/* ── Envio ───────────────────────────────────────────────── */
+async function enviarFormulario() {
+  // Coletar assinaturas de canvas
+  for (const [id, inst] of Object.entries(canvasInstancias)) {
+    const png = inst.exportarBase64();
+    if (png) {
+      // Evita reupload se a assinatura já foi enviada e não mudou (ex.: retry)
+      const jaEnviada = typeof respostas[id] === 'string' && /^https?:/.test(respostas[id]);
+      if (jaEnviada && !inst.modificado) continue;
+      const res = await API.call('uploadArquivo', {
+        formId: FORM_ID, perguntaId: id,
+        base64Data: png, nomeArquivo: 'assinatura.png', mimeType: 'image/png',
+      });
+      if (res.ok) { respostas[id] = res.data.url; inst.modificado = false; }
+    }
+  }
+
+  // Garantir que o IP foi obtido (await com timeout de 2s — não trava o submit)
+  if (_ipPromise && !userIp) {
+    await Promise.race([
+      _ipPromise,
+      new Promise(resolve => setTimeout(resolve, 2000))
+    ]);
+  }
+
+  const payload = {
+    formId: FORM_ID,
+    respostas: respostas,
+    nonce: nonce,
+    honeypot: document.getElementById('hp_website').value,
+    tempoPreenchimento: Math.round((Date.now() - tsInicio) / 1000),
+    userAgent: navigator.userAgent,
+    userIp: userIp,
+  };
+
+  tentativaPayload = payload;
+
+  const btn = document.getElementById('btn-avancar');
+  Loading.show(btn, 'Enviando...');
+  btn.disabled = true;
+
+  try {
+    const res = await API.call('submitResponse', payload);
+
+    if (res.ok) {
+      Rascunho.limpar(FORM_ID);
+      tentativaPayload = null;
+      DOM.ocultar(document.getElementById('tela-form'));
+      DOM.ocultar(document.getElementById('retry-banner'));
+      const conf = document.getElementById('tela-confirmacao');
+      conf.style.display = '';
+      document.getElementById('mensagem-confirmacao').innerHTML = res.data.mensagemConfirmacao;
+      if (res.data.responseId) {
+        document.getElementById('resposta-id-texto').textContent =
+          'ID da sua resposta: ' + res.data.responseId.substring(0, 8) + '...';
+      }
+      window.scrollTo(0,0);
+    } else {
+      Loading.hide(btn);
+      btn.disabled = false;
+      // Mostrar banner de retry para erros de contingência
+      if (['LOCK_TIMEOUT_FILA','VERIFY_FALHOU_FILA','ERRO_LOCK_FILA'].includes(res.codigo)) {
+        // Resposta foi para a fila — tratar como sucesso informativo
+        Rascunho.limpar(FORM_ID);
+        DOM.ocultar(document.getElementById('tela-form'));
+        const conf = document.getElementById('tela-confirmacao');
+        conf.style.display = '';
+        document.getElementById('mensagem-confirmacao').innerHTML =
+          '<h3>Resposta registrada!</h3><p>' + res.error + '</p>';
+        window.scrollTo(0,0);
+      } else if (res.codigo === 'NONCE_INVALIDO') {
+        // Nonce expirou — gerar novo e permitir reenvio
+        const nonceRes = await API.call('gerarNonce', { formId: FORM_ID });
+        nonce = nonceRes.ok ? nonceRes.data.nonce : null;
+        Toast.aviso('Sessão expirada. Seus dados foram preservados. Tente enviar novamente.');
+      } else {
+        Toast.erro(res.error || 'Erro ao enviar. Tente novamente.');
+        mostrarRetry(res.error);
+      }
+    }
+  } catch(e) {
+    Loading.hide(btn);
+    btn.disabled = false;
+    Toast.erro('Erro de conexão. Seus dados foram preservados.');
+    mostrarRetry('Erro de conexão. Clique em "Tentar novamente" quando a conexão for restaurada.');
+  }
+}
+
+function mostrarRetry(msg) {
+  const banner = document.getElementById('retry-banner');
+  document.getElementById('retry-msg').textContent = msg || 'Erro ao enviar.';
+  DOM.mostrar(banner);
+  window.scrollTo(0,0);
+}
+
+async function reenviar() {
+  if (!tentativaPayload) return;
+  // Renovar nonce
+  const nonceRes = await API.call('gerarNonce', { formId: FORM_ID });
+  nonce = nonceRes.ok ? nonceRes.data.nonce : null;
+  tentativaPayload.nonce = nonce;
+  DOM.ocultar(document.getElementById('retry-banner'));
+  await enviarFormulario();
+}
+
+/* ── Estado (formulário indisponível) ────────────────────── */
+const ESTADOS = {
+  RASCUNHO:        { icone:'🚧', titulo:'Em breve' },
+  PAUSADO:         { icone:'⏸️', titulo:'Temporariamente pausado' },
+  ENCERRADO:       { icone:'🔒', titulo:'Encerrado' },
+  LIMITE_ATINGIDO: { icone:'🔒', titulo:'Vagas esgotadas' },
+  AINDA_NAO_INICIOU: { icone:'⏳', titulo:'Ainda não disponível' },
+  PRAZO_EXPIRADO:  { icone:'⏰', titulo:'Prazo expirado' },
+  NAO_ENCONTRADO:  { icone:'❓', titulo:'Não encontrado' },
+};
+
+function mostrarEstado(codigo, mensagem) {
+  document.getElementById('tela-carregando').style.display = 'none';
+  document.getElementById('tela-estado').style.display = '';
+  const e = ESTADOS[codigo] || { icone:'⚠️', titulo:'Indisponível' };
+  document.getElementById('estado-icone').textContent = e.icone;
+  document.getElementById('estado-titulo').textContent = e.titulo;
+  document.getElementById('estado-mensagem').textContent = mensagem || '';
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function salvarRespostaInput(perguntaId, valor) {
+  respostas[perguntaId] = valor;
+  Rascunho.salvar(FORM_ID, respostas);
+  limparErro(perguntaId);
+}
+
+function restaurarRespostas() {
+  Object.entries(respostas).forEach(([id, val]) => {
+    const el = document.querySelector('[data-pergunta-id="' + id + '"]');
+    if (!el) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+      if (el.type === 'checkbox') {
+        el.checked = (val === 'aceito' || val === true || val === 'true');
+      } else {
+        el.value = Array.isArray(val) ? val.join(', ') : (val || '');
+      }
+    }
+  });
+}
+
+function inicializarCanvases() {
+  document.querySelectorAll('.canvas-assinatura').forEach(c => {
+    const id = c.id.replace('canvas_', '');
+    if (!canvasInstancias[id]) canvasInstancias[id] = new CanvasAssinatura(c);
+  });
+}
+
+function embaralhar(arr, ativo) {
+  if (!ativo) return arr;
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+/* ── Auto-ajuste de altura quando incorporado em outra página (iframe) ── */
+let _ultimaAltura = 0;
+let _embedAjustado = false;
+function _postarAltura() {
+  try {
+    // Só faz sentido quando o form está dentro de um iframe de outra página
+    if (!(window.top && window.top !== window)) return;
+    if (!_embedAjustado && document.body) {
+      // O CSS tem body{min-height:100vh}; dentro do iframe isso infla a medição
+      // e gera loop de crescimento. Neutraliza só no modo incorporado.
+      document.body.style.minHeight = 'auto';
+      _embedAjustado = true;
+    }
+    // Medir apenas o conteúdo do body (NÃO documentElement, que estica até o iframe)
+    const h = document.body ? document.body.scrollHeight : 0;
+    // Só reenvia em mudança real (>4px) — evita oscilação/loop
+    if (h > 0 && Math.abs(h - _ultimaAltura) > 4) {
+      _ultimaAltura = h;
+      window.top.postMessage({ seturForm: true, formId: FORM_ID, height: h }, '*');
+    }
+  } catch (e) { /* silencioso */ }
+}
+
+/* ── Boot ─────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  inicializar();
+  window.addEventListener('resize', _postarAltura);
+  setInterval(_postarAltura, 600);
+});
+</script>
+</body>
+</html>
