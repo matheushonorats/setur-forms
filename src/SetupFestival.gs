@@ -9,7 +9,7 @@ function instalarFormularioFestivalItaliano() {
   const pastaRaiz = props.getProperty('PASTA_RAIZ_ID');
   let masterSheet = props.getProperty('MASTER_SHEET_ID');
   if (!masterSheet) {
-    masterSheet = '1IW0l1cy4smcOc8lJGBbgvjlL-vrXvE2pRNX7AB4Jf1Q';
+    masterSheet = '13o20jZxCelAi7-u4SBz0t5UW-p19kuTjFlbk13SOC50';
     props.setProperty('MASTER_SHEET_ID', masterSheet);
   }
 
