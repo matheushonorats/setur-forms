@@ -7,9 +7,13 @@ function instalarFormularioFestivalItaliano() {
   // Garantir que a infraestrutura base (pastas, abas, triggers) esteja inicializada
   const props = PropertiesService.getScriptProperties();
   const pastaRaiz = props.getProperty('PASTA_RAIZ_ID');
-  const masterSheet = props.getProperty('MASTER_SHEET_ID');
+  let masterSheet = props.getProperty('MASTER_SHEET_ID');
+  if (!masterSheet) {
+    masterSheet = '1IW0l1cy4smcOc8lJGBbgvjlL-vrXvE2pRNX7AB4Jf1Q';
+    props.setProperty('MASTER_SHEET_ID', masterSheet);
+  }
 
-  if (!pastaRaiz || !masterSheet) {
+  if (!pastaRaiz) {
     Logger.log('ℹ️ Infraestrutura base não detectada. Executando setup inicial do SETUR Forms...');
     try {
       setup();
