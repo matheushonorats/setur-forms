@@ -206,3 +206,15 @@ function limparTentativas_(fingerprint) {
   const chave = 'rl_' + hashSHA256(fingerprint).substring(0, 16);
   CacheService.getScriptCache().remove(chave);
 }
+
+/**
+ * Função utilitária para redefinir a senha do administrador pelo editor do Apps Script.
+ * Execute esta função diretamente pelo menu do Apps Script se esquecer a senha.
+ */
+function resetarSenhaAdmin() {
+  const novaSenhaPadrao = 'admin12345';
+  definirConfig('senhaHash', hashSHA256(novaSenhaPadrao));
+  Logger.log('🔑 Senha de administrador redefinida com sucesso para: ' + novaSenhaPadrao);
+  Logger.log('Você já pode acessar o painel com esta senha e alterá-la se desejar.');
+}
+
