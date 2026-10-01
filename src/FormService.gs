@@ -118,7 +118,7 @@ function criarFormulario(dadosForm) {
     });
   } catch (e) {
     logEvento('SYSTEM', NIVEL_LOG.ERROR, 'Erro ao criar formulário: ' + e.message, e.stack);
-    return respostaErro('Erro ao criar o formulário. Tente novamente.', 'ERRO_CRIAR');
+    return respostaErro('Erro ao criar o formulário: ' + e.message, 'ERRO_CRIAR');
   }
 }
 

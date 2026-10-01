@@ -38,7 +38,16 @@ function setup() {
   try {
     console.log('🚀 Iniciando setup do SETUR Forms GAS...');
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      const idSalvo = PropertiesService.getScriptProperties().getProperty('MASTER_SHEET_ID');
+      if (idSalvo) {
+        try { ss = SpreadsheetApp.openById(idSalvo); } catch(err) {}
+      }
+    }
+    if (!ss) {
+      throw new Error('Planilha Mestre não identificada. Abra o script pelo menu "Extensões > Apps Script" de dentro da Planilha Mestre.');
+    }
 
     // 1. Salvar ID da planilha mestre
     PropertiesService.getScriptProperties().setProperty(

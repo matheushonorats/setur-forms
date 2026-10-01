@@ -4,6 +4,22 @@
  * no sistema SETUR Forms.
  */
 function instalarFormularioFestivalItaliano() {
+  // Garantir que a infraestrutura base (pastas, abas, triggers) esteja inicializada
+  const props = PropertiesService.getScriptProperties();
+  const pastaRaiz = props.getProperty('PASTA_RAIZ_ID');
+  const masterSheet = props.getProperty('MASTER_SHEET_ID');
+
+  if (!pastaRaiz || !masterSheet) {
+    Logger.log('ℹ️ Infraestrutura base não detectada. Executando setup inicial do SETUR Forms...');
+    try {
+      setup();
+      Logger.log('✅ Setup inicial concluído com sucesso!');
+    } catch (e) {
+      Logger.log('❌ Falha no setup inicial: ' + e.message);
+      return;
+    }
+  }
+
   const formConfig = {
     titulo: 'Festival Italiano de São Sebastião 2026',
     descricao: 'Inscrição para Concessão Onerosa de Estandes e Espaços. De 01 a 19 de outubro de 2026.',
