@@ -1,6 +1,6 @@
-/**
- * @fileoverview Núcleo de gravação de respostas do SETUR Forms GAS.
- * Validação dupla, LockService, sanitização, fila de contingência.
+﻿/**
+ * @fileoverview NÃºcleo de gravaÃ§Ã£o de respostas do SETUR Forms GAS.
+ * ValidaÃ§Ã£o dupla, LockService, sanitizaÃ§Ã£o, fila de contingÃªncia.
  */
 
 // ============================================================
@@ -8,12 +8,12 @@
 // ============================================================
 
 /**
- * Recebe e grava uma resposta de formulário.
- * Pipeline: validar nonce → anti-bot → revalidar → lock → sanitizar → gravar.
- * @param {string} formId - ID do formulário
+ * Recebe e grava uma resposta de formulÃ¡rio.
+ * Pipeline: validar nonce â†’ anti-bot â†’ revalidar â†’ lock â†’ sanitizar â†’ gravar.
+ * @param {string} formId - ID do formulÃ¡rio
  * @param {Object} payload - Dados da resposta
- * @param {Object} payload.respostas - Mapa questionId → valor
- * @param {string} payload.nonce - Token único de submissão
+ * @param {Object} payload.respostas - Mapa questionId â†’ valor
+ * @param {string} payload.nonce - Token Ãºnico de submissÃ£o
  * @param {string} payload.honeypot - Campo honeypot (deve estar vazio)
  * @param {number} payload.tempoPreenchimento - Segundos desde o carregamento
  * @param {string} [payload.userAgent] - User-Agent do cliente
@@ -23,61 +23,61 @@ function receberResposta(formId, payload) {
   const responseId = gerarUUID();
 
   try {
-    // ── 1. Honeypot anti-bot ──────────────────────────────
+    // â”€â”€ 1. Honeypot anti-bot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (payload.honeypot && payload.honeypot !== '') {
-      logEvento(formId, NIVEL_LOG.WARN, 'Honeypot preenchido — provável bot rejeitado.');
-      return respostaErro('Submissão inválida.', 'BOT_DETECTADO');
+      logEvento(formId, NIVEL_LOG.WARN, 'Honeypot preenchido â€” provÃ¡vel bot rejeitado.');
+      return respostaErro('SubmissÃ£o invÃ¡lida.', 'BOT_DETECTADO');
     }
 
-    // ── 2. Tempo mínimo de preenchimento ─────────────────
+    // â”€â”€ 2. Tempo mÃ­nimo de preenchimento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const config = obterConfig();
     const tempoMin = parseInt(config['tempoMinimoResposta']) || 5;
     if ((payload.tempoPreenchimento || 0) < tempoMin) {
       logEvento(formId, NIVEL_LOG.WARN,
-        'Resposta muito rápida (' + payload.tempoPreenchimento + 's). Possível bot.');
-      return respostaErro('Submissão muito rápida. Por favor, aguarde.', 'MUITO_RAPIDO');
+        'Resposta muito rÃ¡pida (' + payload.tempoPreenchimento + 's). PossÃ­vel bot.');
+      return respostaErro('SubmissÃ£o muito rÃ¡pida. Por favor, aguarde.', 'MUITO_RAPIDO');
     }
 
-    // ── 3. Validar e invalidar nonce ─────────────────────
+    // â”€â”€ 3. Validar e invalidar nonce â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (!validarNonce(formId, payload.nonce)) {
-      logEvento(formId, NIVEL_LOG.WARN, 'Nonce inválido ou já usado. responseId: ' + responseId);
-      return respostaErro('Esta submissão já foi processada ou expirou. Recarregue a página.', 'NONCE_INVALIDO');
+      logEvento(formId, NIVEL_LOG.WARN, 'Nonce invÃ¡lido ou jÃ¡ usado. responseId: ' + responseId);
+      return respostaErro('Esta submissÃ£o jÃ¡ foi processada ou expirou. Recarregue a pÃ¡gina.', 'NONCE_INVALIDO');
     }
 
-    // ── 4. Obter e verificar o formulário ────────────────
+    // â”€â”€ 4. Obter e verificar o formulÃ¡rio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const formResult = obterFormularioPublico(formId);
     if (!formResult.ok) return formResult;
     const form = formResult.data;
 
-    // ── 5. Verificar resposta única por pessoa ───────────
+    // â”€â”€ 5. Verificar resposta Ãºnica por pessoa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const verificacaoUnica = _verificarRespostaUnica(formId, form.configJSON, payload);
     if (!verificacaoUnica.ok) return verificacaoUnica;
 
-    // ── 6. Revalidação server-side completa ──────────────
+    // â”€â”€ 6. RevalidaÃ§Ã£o server-side completa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const validacao = _revalidarRespostas(form.configJSON, payload.respostas);
     if (!validacao.ok) return validacao;
 
-    // ── 7. Gravar com LockService ─────────────────────────
+    // â”€â”€ 7. Gravar com LockService â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const resultado = _gravarComLock(formId, responseId, form, payload);
     return resultado;
 
   } catch (e) {
     logEvento(formId, NIVEL_LOG.ERROR, 'Erro ao receber resposta: ' + e.message, e.stack);
-    // Tentar salvar na fila de contingência
+    // Tentar salvar na fila de contingÃªncia
     _adicionarNaFila(formId, responseId, payload, e.message);
     return respostaErro(
-      'Ocorreu um erro ao registrar sua resposta. Ela foi salva e será processada em breve.',
+      'Ocorreu um erro ao registrar sua resposta. Ela foi salva e serÃ¡ processada em breve.',
       'ERRO_GRAVACAO_CONTINGENCIA'
     );
   }
 }
 
 // ============================================================
-// NONCE (TOKEN ÚNICO DE SUBMISSÃO)
+// NONCE (TOKEN ÃšNICO DE SUBMISSÃƒO)
 // ============================================================
 
 /**
- * Gera e armazena um nonce de submissão único para um formulário.
+ * Gera e armazena um nonce de submissÃ£o Ãºnico para um formulÃ¡rio.
  * @param {string} formId
  * @returns {string} Nonce gerado
  */
@@ -92,7 +92,7 @@ function gerarNonce(formId) {
 }
 
 /**
- * Valida e invalida um nonce (uso único).
+ * Valida e invalida um nonce (uso Ãºnico).
  * @param {string} formId
  * @param {string} nonce
  * @returns {boolean}
@@ -103,44 +103,44 @@ function validarNonce(formId, nonce) {
   const chave = 'nonce_' + formId + '_' + nonce;
   const existe = cache.get(chave);
   if (existe) {
-    cache.remove(chave); // Invalidar — uso único
+    cache.remove(chave); // Invalidar â€” uso Ãºnico
     return true;
   }
   return false;
 }
 
 // ============================================================
-// GRAVAÇÃO COM LOCK — PADRÃO: INTENÇÃO → WRITE → FLUSH → VERIFY → CONFIRM
+// GRAVAÃ‡ÃƒO COM LOCK â€” PADRÃƒO: INTENÃ‡ÃƒO â†’ WRITE â†’ FLUSH â†’ VERIFY â†’ CONFIRM
 // ============================================================
 
 /**
  * Grava a resposta na planilha com garantia de entrega.
  *
  * Fluxo de garantia de entrega em 5 etapas:
- *  1. INTENÇÃO  — registra responseId no CacheService ANTES de qualquer escrita
+ *  1. INTENÃ‡ÃƒO  â€” registra responseId no CacheService ANTES de qualquer escrita
  *                 Se o processo morrer aqui, o trigger detecta e reprocessa
- *  2. WRITE     — appendRow com LockService (sem corrupção por concorrência)
- *  3. FLUSH     — SpreadsheetApp.flush() força commit físico na API
- *  4. VERIFY    — lê de volta a linha pelo responseId para confirmar presença
- *  5. CONFIRM   — só retorna ok:true após verificação positiva
- *                 Se verificação falhar → retry → fila → nunca ok:true sem dados
+ *  2. WRITE     â€” appendRow com LockService (sem corrupÃ§Ã£o por concorrÃªncia)
+ *  3. FLUSH     â€” SpreadsheetApp.flush() forÃ§a commit fÃ­sico na API
+ *  4. VERIFY    â€” lÃª de volta a linha pelo responseId para confirmar presenÃ§a
+ *  5. CONFIRM   â€” sÃ³ retorna ok:true apÃ³s verificaÃ§Ã£o positiva
+ *                 Se verificaÃ§Ã£o falhar â†’ retry â†’ fila â†’ nunca ok:true sem dados
  *
  * @param {string} formId
  * @param {string} responseId
- * @param {Object} form - Dados do formulário
+ * @param {Object} form - Dados do formulÃ¡rio
  * @param {Object} payload - Payload da resposta
  * @returns {{ok: boolean, data?: Object, error?: string}}
  * @private
  */
 function _gravarComLock(formId, responseId, form, payload) {
 
-  // ── ETAPA 1: REGISTRAR INTENÇÃO ───────────────────────────
-  // Antes de qualquer I/O na planilha, marcamos a intenção no cache.
+  // â”€â”€ ETAPA 1: REGISTRAR INTENÃ‡ÃƒO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Antes de qualquer I/O na planilha, marcamos a intenÃ§Ã£o no cache.
   // Se o processo morrer entre aqui e o CONFIRM, o trigger detecta
   // respostas sem par na planilha e reprocessa da fila.
   _registrarIntencao(formId, responseId, payload);
 
-  // ── ETAPA 2: OBTER LOCK ───────────────────────────────────
+  // â”€â”€ ETAPA 2: OBTER LOCK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const lock = LockService.getScriptLock();
   let lockObtido = false;
   let tentativaLock = 0;
@@ -154,15 +154,15 @@ function _gravarComLock(formId, responseId, form, payload) {
       tentativaLock++;
       if (tentativaLock >= LIMITE.MAX_RETRIES_LOCK) {
         logEvento(formId, NIVEL_LOG.WARN,
-          'LockService timeout após ' + LIMITE.MAX_RETRIES_LOCK + ' tentativas. responseId: ' + responseId);
-        // Intenção já registrada → fila vai processar
-        _adicionarNaFila(formId, responseId, payload, 'Lock timeout após retries');
-        // Limpa intenção pois a fila assumiu a responsabilidade
+          'LockService timeout apÃ³s ' + LIMITE.MAX_RETRIES_LOCK + ' tentativas. responseId: ' + responseId);
+        // IntenÃ§Ã£o jÃ¡ registrada â†’ fila vai processar
+        _adicionarNaFila(formId, responseId, payload, 'Lock timeout apÃ³s retries');
+        // Limpa intenÃ§Ã£o pois a fila assumiu a responsabilidade
         _removerIntencao(responseId);
         return respostaErro(
-          'O sistema recebeu sua resposta, mas está processando muitos envios simultâneos. ' +
-          'Sua resposta (ID: ' + responseId.substring(0, 8) + '...) foi salva e será registrada em até 5 minutos. ' +
-          'Você pode fechar esta página com segurança.',
+          'O sistema recebeu sua resposta, mas estÃ¡ processando muitos envios simultÃ¢neos. ' +
+          'Sua resposta (ID: ' + responseId.substring(0, 8) + '...) foi salva e serÃ¡ registrada em atÃ© 5 minutos. ' +
+          'VocÃª pode fechar esta pÃ¡gina com seguranÃ§a.',
           'LOCK_TIMEOUT_FILA'
         );
       }
@@ -171,18 +171,18 @@ function _gravarComLock(formId, responseId, form, payload) {
   }
 
   try {
-    // ── ETAPA 2 (cont): VERIFICAR SE JÁ FOI GRAVADA ──────────
-    // Proteção extra: se por algum motivo o mesmo responseId já chegou
-    // (ex: retry do cliente), não duplicar.
+    // â”€â”€ ETAPA 2 (cont): VERIFICAR SE JÃ FOI GRAVADA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ProteÃ§Ã£o extra: se por algum motivo o mesmo responseId jÃ¡ chegou
+    // (ex: retry do cliente), nÃ£o duplicar.
     const { planilhaId } = _obterInfoPlanilha(formId);
     const ss = SpreadsheetApp.openById(planilhaId);
     const aba = ss.getSheetByName('Respostas');
 
     if (_responseIdExisteNaPlanilha(aba, responseId)) {
       logEvento(formId, NIVEL_LOG.WARN,
-        'responseId já existia na planilha (submissão duplicada ignorada): ' + responseId);
+        'responseId jÃ¡ existia na planilha (submissÃ£o duplicada ignorada): ' + responseId);
       _removerIntencao(responseId);
-      // Retornar sucesso pois a resposta JÁ está gravada
+      // Retornar sucesso pois a resposta JÃ estÃ¡ gravada
       const timestamp = formatarDataBR(new Date());
       return respostaOk({
         responseId: responseId,
@@ -191,7 +191,7 @@ function _gravarComLock(formId, responseId, form, payload) {
       });
     }
 
-    // ── ETAPA 3: ESCREVER (dentro do lock) ───────────────────
+    // â”€â”€ ETAPA 3: ESCREVER (dentro do lock) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const ultimaColuna = aba.getLastColumn();
     const rangeHeader = aba.getRange(1, 1, 1, ultimaColuna);
     const cabecalhos = rangeHeader.getValues()[0];
@@ -199,7 +199,7 @@ function _gravarComLock(formId, responseId, form, payload) {
     const respostasSanitizadas = sanitizarRespostas(payload.respostas || {});
     const timestamp = formatarDataBR(new Date());
 
-    // Versão real do formulário (gravada no configJSON pelo admin), com fallback
+    // VersÃ£o real do formulÃ¡rio (gravada no configJSON pelo admin), com fallback
     const cfg = form.configJSON;
     const parsedCfg = typeof cfg === 'string' ? JSON.parse(cfg || '{}') : (cfg || {});
     const versaoForm = (parsedCfg.configuracoes && parsedCfg.configuracoes.versao) || '1.0';
@@ -226,29 +226,29 @@ function _gravarComLock(formId, responseId, form, payload) {
 
     aba.appendRow(linhaDados);
 
-    // ── ETAPA 4: FLUSH FÍSICO ─────────────────────────────────
-    // Força o commit de todas as alterações pendentes na API do Sheets
+    // â”€â”€ ETAPA 4: FLUSH FÃSICO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ForÃ§a o commit de todas as alteraÃ§Ãµes pendentes na API do Sheets
     // ANTES de verificar. Sem isso, getValues() poderia retornar cache stale.
     SpreadsheetApp.flush();
 
-    // ── ETAPA 5: VERIFICAR PRESENÇA NA PLANILHA ───────────────
-    // Lê de volta para confirmar que a linha está realmente persistida.
+    // â”€â”€ ETAPA 5: VERIFICAR PRESENÃ‡A NA PLANILHA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // LÃª de volta para confirmar que a linha estÃ¡ realmente persistida.
     const gravado = _responseIdExisteNaPlanilha(aba, responseId);
 
     if (!gravado) {
       logEvento(formId, NIVEL_LOG.WARN,
-        'VERIFY falhou na 1ª tentativa para responseId: ' + responseId + '. Aguardando propagação...');
+        'VERIFY falhou na 1Âª tentativa para responseId: ' + responseId + '. Aguardando propagaÃ§Ã£o...');
 
-      Utilities.sleep(1000); // Espera 1s para propagação do Sheets
+      Utilities.sleep(1000); // Espera 1s para propagaÃ§Ã£o do Sheets
       SpreadsheetApp.flush();
 
-      // Verificar se a linha apareceu após a espera (sem duplicar)
+      // Verificar se a linha apareceu apÃ³s a espera (sem duplicar)
       if (_responseIdExisteNaPlanilha(aba, responseId)) {
         logEvento(formId, NIVEL_LOG.INFO,
-          'VERIFY corrigido na 2ª tentativa de leitura para responseId: ' + responseId);
+          'VERIFY corrigido na 2Âª tentativa de leitura para responseId: ' + responseId);
       } else {
         logEvento(formId, NIVEL_LOG.WARN,
-          'VERIFY falhou na 2ª leitura. Executando appendRow novamente para: ' + responseId);
+          'VERIFY falhou na 2Âª leitura. Executando appendRow novamente para: ' + responseId);
         aba.appendRow(linhaDados);
         SpreadsheetApp.flush();
 
@@ -256,27 +256,30 @@ function _gravarComLock(formId, responseId, form, payload) {
 
         if (!gravadoRetry) {
           logEvento(formId, NIVEL_LOG.ERROR,
-            'CRÍTICO: appendRow+flush executados mas responseId não encontrado na planilha: ' + responseId);
-          _adicionarNaFila(formId, responseId, payload, 'Verify falhou após retry');
+            'CRÃTICO: appendRow+flush executados mas responseId nÃ£o encontrado na planilha: ' + responseId);
+          _adicionarNaFila(formId, responseId, payload, 'Verify falhou apÃ³s retry');
           _removerIntencao(responseId);
           return respostaErro(
-            'Sua resposta foi recebida mas tivemos dificuldade técnica ao confirmá-la. ' +
-            'Ela foi salva em nosso sistema de contingência (ID: ' + responseId.substring(0, 8) + '...) ' +
-            'e será registrada automaticamente em até 5 minutos. ' +
-            'Por favor, não envie novamente.',
+            'Sua resposta foi recebida mas tivemos dificuldade tÃ©cnica ao confirmÃ¡-la. ' +
+            'Ela foi salva em nosso sistema de contingÃªncia (ID: ' + responseId.substring(0, 8) + '...) ' +
+            'e serÃ¡ registrada automaticamente em atÃ© 5 minutos. ' +
+            'Por favor, nÃ£o envie novamente.',
             'VERIFY_FALHOU_FILA'
           );
         }
       }
     }
 
-    // ── CONFIRM: GRAVAÇÃO CONFIRMADA ──────────────────────────
-    // Só chegamos aqui se a linha foi lida de volta com sucesso.
+    // â”€â”€ CONFIRM: GRAVAÃ‡ÃƒO CONFIRMADA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // SÃ³ chegamos aqui se a linha foi lida de volta com sucesso.
     _removerIntencao(responseId);
     _incrementarContador(formId);
     _verificarLimiteEEncerrar(formId, form);
     _enfileirarNotificacao(formId, form.configJSON, responseId, timestamp);
     _registrarRespostaUnicaCache(formId, form.configJSON, payload);
+
+    // Organizar uploads por resposta, se configurado
+    _organizarUploadsPorResposta(formId, form, payload, responseId);
 
     logEvento(formId, NIVEL_LOG.INFO,
       'Resposta CONFIRMADA na planilha. responseId: ' + responseId);
@@ -288,15 +291,15 @@ function _gravarComLock(formId, responseId, form, payload) {
     });
 
   } catch (e) {
-    // Erro inesperado dentro do lock — garantir enfileiramento
+    // Erro inesperado dentro do lock â€” garantir enfileiramento
     logEvento(formId, NIVEL_LOG.ERROR,
       'Erro dentro do lock para responseId ' + responseId + ': ' + e.message, e.stack);
     _adicionarNaFila(formId, responseId, payload, 'Erro no lock: ' + e.message);
     _removerIntencao(responseId);
     return respostaErro(
-      'Ocorreu um erro técnico ao registrar sua resposta. ' +
-      'Ela foi salva e será processada automaticamente (ID: ' + responseId.substring(0, 8) + '...). ' +
-      'Não envie novamente.',
+      'Ocorreu um erro tÃ©cnico ao registrar sua resposta. ' +
+      'Ela foi salva e serÃ¡ processada automaticamente (ID: ' + responseId.substring(0, 8) + '...). ' +
+      'NÃ£o envie novamente.',
       'ERRO_LOCK_FILA'
     );
   } finally {
@@ -307,12 +310,12 @@ function _gravarComLock(formId, responseId, form, payload) {
 }
 
 // ============================================================
-// REGISTRO DE INTENÇÃO (GARANTIA DE ENTREGA)
+// REGISTRO DE INTENÃ‡ÃƒO (GARANTIA DE ENTREGA)
 // ============================================================
 
 /**
- * Registra a intenção de gravar uma resposta ANTES de qualquer I/O na planilha.
- * Usado pelo trigger de reconciliação para detectar respostas perdidas.
+ * Registra a intenÃ§Ã£o de gravar uma resposta ANTES de qualquer I/O na planilha.
+ * Usado pelo trigger de reconciliaÃ§Ã£o para detectar respostas perdidas.
  * @param {string} formId
  * @param {string} responseId
  * @param {Object} payload
@@ -327,15 +330,15 @@ function _registrarIntencao(formId, responseId, payload) {
       600 // 10 minutos
     );
   } catch (e) {
-    logEvento(formId, NIVEL_LOG.WARN, 'Falha ao gravar no CacheService (não crítico): ' + e.message);
+    logEvento(formId, NIVEL_LOG.WARN, 'Falha ao gravar no CacheService (nÃ£o crÃ­tico): ' + e.message);
   }
 
   const lock = LockService.getScriptLock();
   let lockObtido = false;
   try {
-    lockObtido = lock.tryLock(3000); // Timeout curto de 3s para o envio do usuário
+    lockObtido = lock.tryLock(3000); // Timeout curto de 3s para o envio do usuÃ¡rio
   } catch (err) {
-    // Silencioso, lockObtido continuará false
+    // Silencioso, lockObtido continuarÃ¡ false
   }
 
   try {
@@ -347,8 +350,8 @@ function _registrarIntencao(formId, responseId, payload) {
     };
     props.setProperty('INTENCAO_' + responseId, JSON.stringify(info));
   } catch (e) {
-    // Não bloquear o fluxo do usuário se o registro de intenção falhar (degradação graciosa)
-    logEvento(formId, NIVEL_LOG.WARN, 'Falha ao registrar intenção no PropertiesService (não crítico): ' + e.message);
+    // NÃ£o bloquear o fluxo do usuÃ¡rio se o registro de intenÃ§Ã£o falhar (degradaÃ§Ã£o graciosa)
+    logEvento(formId, NIVEL_LOG.WARN, 'Falha ao registrar intenÃ§Ã£o no PropertiesService (nÃ£o crÃ­tico): ' + e.message);
   } finally {
     if (lockObtido) {
       try { lock.releaseLock(); } catch (ignore) {}
@@ -357,7 +360,7 @@ function _registrarIntencao(formId, responseId, payload) {
 }
 
 /**
- * Remove o registro de intenção após gravação confirmada.
+ * Remove o registro de intenÃ§Ã£o apÃ³s gravaÃ§Ã£o confirmada.
  * @param {string} responseId
  * @private
  */
@@ -380,7 +383,7 @@ function _removerIntencao(responseId) {
     const props = PropertiesService.getScriptProperties();
     props.deleteProperty('INTENCAO_' + responseId);
   } catch (e) {
-    /* Silencioso — não logar como erro para evitar ruído */
+    /* Silencioso â€” nÃ£o logar como erro para evitar ruÃ­do */
   } finally {
     if (lockObtido) {
       try { lock.releaseLock(); } catch (ignore) {}
@@ -389,8 +392,8 @@ function _removerIntencao(responseId) {
 }
 
 /**
- * Verifica se um responseId já existe na aba de respostas.
- * Lê apenas a coluna responseId (coluna 1) para eficiência.
+ * Verifica se um responseId jÃ¡ existe na aba de respostas.
+ * LÃª apenas a coluna responseId (coluna 1) para eficiÃªncia.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} aba
  * @param {string} responseId
  * @returns {boolean}
@@ -400,7 +403,7 @@ function _responseIdExisteNaPlanilha(aba, responseId) {
   try {
     const ultimaLinha = aba.getLastRow();
     if (ultimaLinha <= 1) return false;
-    // Lê apenas a primeira coluna (responseId) — eficiente mesmo com muitas respostas
+    // LÃª apenas a primeira coluna (responseId) â€” eficiente mesmo com muitas respostas
     const colResponseId = aba.getRange(2, 1, ultimaLinha - 1, 1).getValues();
     return colResponseId.some(r => r[0] === responseId);
   } catch (e) {
@@ -409,7 +412,7 @@ function _responseIdExisteNaPlanilha(aba, responseId) {
 }
 
 /**
- * Extrai a mensagem de confirmação do configJSON de forma segura.
+ * Extrai a mensagem de confirmaÃ§Ã£o do configJSON de forma segura.
  * @param {Object} form
  * @returns {string}
  * @private
@@ -428,14 +431,14 @@ function _getMensagemConfirmacao(form) {
 }
 
 // ============================================================
-// REVALIDAÇÃO SERVER-SIDE
+// REVALIDAÃ‡ÃƒO SERVER-SIDE
 // ============================================================
 
 /**
  * Revalida todas as respostas server-side.
  * Nunca confiar no cliente.
- * @param {Object} configJSON - Configuração do formulário
- * @param {Object} respostas - Mapa questionId → valor
+ * @param {Object} configJSON - ConfiguraÃ§Ã£o do formulÃ¡rio
+ * @param {Object} respostas - Mapa questionId â†’ valor
  * @returns {{ok: boolean, error?: string, erros?: Object}}
  * @private
  */
@@ -457,14 +460,14 @@ function _revalidarRespostas(configJSON, respostas) {
      const deveSerObrigatorio = pergunta.obrigatoria || pergunta.tipo === 'ACEITE_TERMOS';
      if (deveSerObrigatorio && vazio) {
        erros[pergunta.id] = pergunta.tipo === 'ACEITE_TERMOS'
-         ? 'Você deve aceitar os termos para prosseguir.'
-         : 'Este campo é obrigatório.';
+         ? 'VocÃª deve aceitar os termos para prosseguir.'
+         : 'Este campo Ã© obrigatÃ³rio.';
        return;
      }
 
-    if (vazio) return; // Campo opcional vazio — OK
+    if (vazio) return; // Campo opcional vazio â€” OK
 
-    // Validações por tipo
+    // ValidaÃ§Ãµes por tipo
     switch (pergunta.tipo) {
       case TIPO_PERGUNTA.RESPOSTA_CURTA:
         const erroValidacao = _validarTipoResposta(valor, pergunta.validacao);
@@ -483,10 +486,10 @@ function _revalidarRespostas(configJSON, respostas) {
         const minSel = pergunta.config && pergunta.config.minSelecoes;
         const maxSel = pergunta.config && pergunta.config.maxSelecoes;
         if (minSel && selecionados < minSel) {
-          erros[pergunta.id] = 'Selecione pelo menos ' + minSel + ' opção(ões).';
+          erros[pergunta.id] = 'Selecione pelo menos ' + minSel + ' opÃ§Ã£o(Ãµes).';
         }
         if (maxSel && selecionados > maxSel) {
-          erros[pergunta.id] = 'Selecione no máximo ' + maxSel + ' opção(ões).';
+          erros[pergunta.id] = 'Selecione no mÃ¡ximo ' + maxSel + ' opÃ§Ã£o(Ãµes).';
         }
         break;
 
@@ -494,24 +497,24 @@ function _revalidarRespostas(configJSON, respostas) {
       case TIPO_PERGUNTA.AVALIACAO_ESTRELAS:
       case TIPO_PERGUNTA.SLIDER_NUMERICO:
         if (!validarNumero(valor)) {
-          erros[pergunta.id] = 'Valor numérico inválido.';
+          erros[pergunta.id] = 'Valor numÃ©rico invÃ¡lido.';
         }
         break;
     }
   });
 
   if (Object.keys(erros).length > 0) {
-    return { ok: false, error: 'Existem campos inválidos.', erros: erros, codigo: 'VALIDACAO_FALHOU' };
+    return { ok: false, error: 'Existem campos invÃ¡lidos.', erros: erros, codigo: 'VALIDACAO_FALHOU' };
   }
 
   return { ok: true };
 }
 
 /**
- * Valida um valor de resposta curta contra seu tipo de validação.
+ * Valida um valor de resposta curta contra seu tipo de validaÃ§Ã£o.
  * @param {string} valor
- * @param {Object} validacao - Configuração de validação da pergunta
- * @returns {string|null} Mensagem de erro ou null se válido
+ * @param {Object} validacao - ConfiguraÃ§Ã£o de validaÃ§Ã£o da pergunta
+ * @returns {string|null} Mensagem de erro ou null se vÃ¡lido
  * @private
  */
 function _validarTipoResposta(valor, validacao) {
@@ -519,32 +522,32 @@ function _validarTipoResposta(valor, validacao) {
 
   switch (validacao.tipo) {
     case TIPO_VALIDACAO.EMAIL:
-      return validarEmail(valor) ? null : 'E-mail inválido.';
+      return validarEmail(valor) ? null : 'E-mail invÃ¡lido.';
     case TIPO_VALIDACAO.TELEFONE:
-      return validarTelefoneBR(valor) ? null : 'Telefone inválido. Use (XX) XXXXX-XXXX.';
+      return validarTelefoneBR(valor) ? null : 'Telefone invÃ¡lido. Use (XX) XXXXX-XXXX.';
     case TIPO_VALIDACAO.CPF:
-      return validarCPF(valor) ? null : 'CPF inválido.';
+      return validarCPF(valor) ? null : 'CPF invÃ¡lido.';
     case TIPO_VALIDACAO.CNPJ:
-      return validarCNPJ(valor) ? null : 'CNPJ inválido.';
+      return validarCNPJ(valor) ? null : 'CNPJ invÃ¡lido.';
     case TIPO_VALIDACAO.CEP:
-      return validarCEP(valor) ? null : 'CEP inválido.';
+      return validarCEP(valor) ? null : 'CEP invÃ¡lido.';
     case TIPO_VALIDACAO.NUMERO:
-      return validarNumero(valor) ? null : 'Apenas números são permitidos.';
+      return validarNumero(valor) ? null : 'Apenas nÃºmeros sÃ£o permitidos.';
     case TIPO_VALIDACAO.REGEX:
       if (!validacao.regex) return null;
       return validarRegex(valor, validacao.regex) ? null
-        : (validacao.mensagemErro || 'Formato inválido.');
+        : (validacao.mensagemErro || 'Formato invÃ¡lido.');
     default:
       return null;
   }
 }
 
 // ============================================================
-// RESPOSTA ÚNICA POR PESSOA
+// RESPOSTA ÃšNICA POR PESSOA
 // ============================================================
 
 /**
- * Verifica se o respondente já enviou resposta (quando configurado).
+ * Verifica se o respondente jÃ¡ enviou resposta (quando configurado).
  * @param {string} formId
  * @param {Object} configJSON
  * @param {Object} payload
@@ -555,7 +558,7 @@ function _verificarRespostaUnica(formId, configJSON, payload) {
   const cfg = configJSON.configuracoes;
   if (!cfg || !cfg.respostaUnica) return { ok: true };
 
-  // Verificar por campo único (CPF ou email)
+  // Verificar por campo Ãºnico (CPF ou email)
   const campoId = cfg.campoRespostaUnica;
   if (campoId && payload.respostas && payload.respostas[campoId]) {
     const valorCampo = String(payload.respostas[campoId]).trim().toLowerCase();
@@ -564,10 +567,10 @@ function _verificarRespostaUnica(formId, configJSON, payload) {
     const cache = CacheService.getScriptCache();
     const chave = 'resp_unica_' + hashCampo;
 
-    // Verificar também na planilha (cache pode ter expirado)
+    // Verificar tambÃ©m na planilha (cache pode ter expirado)
     if (cache.get(chave) || _verificarDuplicataAPlanilha(formId, campoId, valorCampo)) {
       return respostaErro(
-        'Você já enviou uma resposta para este formulário.',
+        'VocÃª jÃ¡ enviou uma resposta para este formulÃ¡rio.',
         'RESPOSTA_DUPLICADA'
       );
     }
@@ -606,11 +609,11 @@ function _verificarDuplicataAPlanilha(formId, campoId, valor) {
 }
 
 // ============================================================
-// FILA DE CONTINGÊNCIA
+// FILA DE CONTINGÃŠNCIA
 // ============================================================
 
 /**
- * Adiciona uma resposta na fila de contingência (aba FILA).
+ * Adiciona uma resposta na fila de contingÃªncia (aba FILA).
  * @param {string} formId
  * @param {string} responseId
  * @param {Object} payload
@@ -634,16 +637,16 @@ function _adicionarNaFila(formId, responseId, payload, motivo) {
       'Resposta enfileirada. responseId: ' + responseId + '. Motivo: ' + motivo);
   } catch (e) {
     logEvento(formId, NIVEL_LOG.ERROR,
-      'CRÍTICO: Falha ao enfileirar resposta: ' + e.message, e.stack);
+      'CRÃTICO: Falha ao enfileirar resposta: ' + e.message, e.stack);
   }
 }
 
 // ============================================================
-// EDITAR RESPOSTA (LINK DE EDIÇÃO)
+// EDITAR RESPOSTA (LINK DE EDIÃ‡ÃƒO)
 // ============================================================
 
 /**
- * Gera um link de edição para uma resposta existente.
+ * Gera um link de ediÃ§Ã£o para uma resposta existente.
  * @param {string} formId
  * @param {string} responseId
  * @returns {{ok: boolean, data?: {url: string}, error?: string}}
@@ -660,20 +663,20 @@ function gerarLinkEdicao(formId, responseId) {
       '?form=' + formId + '&editar=' + token;
     return respostaOk({ url: url });
   } catch (e) {
-    return respostaErro('Erro ao gerar link de edição.', 'ERRO_LINK_EDICAO');
+    return respostaErro('Erro ao gerar link de ediÃ§Ã£o.', 'ERRO_LINK_EDICAO');
   }
 }
 
 /**
- * Carrega uma resposta existente para edição, dado um token.
- * @param {string} token - Token de edição
+ * Carrega uma resposta existente para ediÃ§Ã£o, dado um token.
+ * @param {string} token - Token de ediÃ§Ã£o
  * @returns {{ok: boolean, data?: Object, error?: string}}
  */
 function carregarRespostaParaEdicao(token) {
   try {
     const dados = CacheService.getScriptCache().get('edicao_' + token);
     if (!dados) {
-      return respostaErro('Link de edição expirado ou inválido.', 'TOKEN_INVALIDO');
+      return respostaErro('Link de ediÃ§Ã£o expirado ou invÃ¡lido.', 'TOKEN_INVALIDO');
     }
 
     const { formId, responseId } = JSON.parse(dados);
@@ -682,11 +685,11 @@ function carregarRespostaParaEdicao(token) {
     const aba = ss.getSheetByName('Respostas');
 
     const colResponseId = _obterColunaPorId(aba, 'responseId');
-    if (colResponseId === -1) return respostaErro('Planilha de respostas com estrutura inválida.', 'PLANILHA_INVALIDA');
+    if (colResponseId === -1) return respostaErro('Planilha de respostas com estrutura invÃ¡lida.', 'PLANILHA_INVALIDA');
     const dados2 = aba.getDataRange().getValues();
     const linhaDados = dados2.find(r => r[colResponseId] === responseId);
 
-    if (!linhaDados) return respostaErro('Resposta não encontrada.', 'RESPOSTA_NAO_ENCONTRADA');
+    if (!linhaDados) return respostaErro('Resposta nÃ£o encontrada.', 'RESPOSTA_NAO_ENCONTRADA');
 
     const colunas = aba.getLastColumn();
     const rangeHeader = aba.getRange(1, 1, 1, colunas);
@@ -695,13 +698,13 @@ function carregarRespostaParaEdicao(token) {
 
     const obj = {};
     cabecalhos.forEach((chave, idx) => {
-      const questionId = notas[idx] || chave; // Fallback para cabeçalho sem nota
+      const questionId = notas[idx] || chave; // Fallback para cabeÃ§alho sem nota
       obj[questionId] = linhaDados[idx] !== undefined ? linhaDados[idx] : '';
     });
 
     return respostaOk({ formId, responseId, respostas: obj });
   } catch (e) {
-    return respostaErro('Erro ao carregar resposta para edição. ' + e.message, 'ERRO_EDICAO');
+    return respostaErro('Erro ao carregar resposta para ediÃ§Ã£o. ' + e.message, 'ERRO_EDICAO');
   }
 }
 
@@ -710,17 +713,17 @@ function carregarRespostaParaEdicao(token) {
 // ============================================================
 
 /**
- * Obtém informações da planilha de um formulário a partir da aba FORMS.
+ * ObtÃ©m informaÃ§Ãµes da planilha de um formulÃ¡rio a partir da aba FORMS.
  * @param {string} formId
  * @returns {{planilhaId: string, urlPlanilha: string, pastaId: string, titulo: string}}
  * @private
  */
 function _obterInfoPlanilha(formId) {
   const linha = _encontrarLinhaForm(formId);
-  if (!linha) throw new Error('Formulário não encontrado: ' + formId);
+  if (!linha) throw new Error('FormulÃ¡rio nÃ£o encontrado: ' + formId);
   const obj = _linhaParaObjeto(linha);
 
-  // Verificar e recriar planilha se necessário
+  // Verificar e recriar planilha se necessÃ¡rio
   if (obj.planilhaId) {
     const info = verificarPlanilhaExiste(
       obj.planilhaId, formId, obj.titulo, obj.pastaId,
@@ -764,7 +767,7 @@ function _incrementarContador(formId) {
 }
 
 /**
- * Verifica se o formulário atingiu o limite e encerra automaticamente.
+ * Verifica se o formulÃ¡rio atingiu o limite e encerra automaticamente.
  * @param {string} formId
  * @param {Object} form
  * @private
@@ -778,7 +781,7 @@ function _verificarLimiteEEncerrar(formId, form) {
     if (total + 1 >= limite) {
       alterarStatus(formId, STATUS.ENCERRADO);
       logEvento(formId, NIVEL_LOG.INFO,
-        'Formulário encerrado automaticamente: limite de ' + limite + ' respostas atingido.');
+        'FormulÃ¡rio encerrado automaticamente: limite de ' + limite + ' respostas atingido.');
     }
   } catch (e) {
     /* Silencioso */
@@ -786,7 +789,7 @@ function _verificarLimiteEEncerrar(formId, form) {
 }
 
 /**
- * Enfileira notificação para o admin se configurado.
+ * Enfileira notificaÃ§Ã£o para o admin se configurado.
  * @param {string} formId
  * @param {Object} configJSON
  * @param {string} responseId
@@ -810,12 +813,12 @@ function _enfileirarNotificacao(formId, configJSON, responseId, timestamp) {
       props.setProperty('NOTIF_QUEUE', JSON.stringify(fila));
     }
   } catch (e) {
-    /* Silencioso — notificação não é crítica */
+    /* Silencioso â€” notificaÃ§Ã£o nÃ£o Ã© crÃ­tica */
   }
 }
 
 /**
- * Envia e-mail de notificação imediata ao admin.
+ * Envia e-mail de notificaÃ§Ã£o imediata ao admin.
  * @param {string} formId
  * @param {string} responseId
  * @param {string} timestamp
@@ -834,19 +837,19 @@ function _enviarNotificacaoImediata(formId, responseId, timestamp) {
       subject: '[SETUR Forms] Nova resposta: ' + formId,
       htmlBody: `
         <h2>Nova resposta recebida</h2>
-        <p><strong>Formulário:</strong> ${formId}</p>
+        <p><strong>FormulÃ¡rio:</strong> ${formId}</p>
         <p><strong>Resposta ID:</strong> ${responseId}</p>
         <p><strong>Data/hora:</strong> ${timestamp}</p>
         <p><a href="${urlDash}">Ver todas as respostas no dashboard</a></p>
       `,
     });
   } catch (e) {
-    logEvento(formId, NIVEL_LOG.WARN, 'Falha ao enviar e-mail de notificação: ' + e.message);
+    logEvento(formId, NIVEL_LOG.WARN, 'Falha ao enviar e-mail de notificaÃ§Ã£o: ' + e.message);
   }
 }
 
 /**
- * Salva a resposta no cache de resposta única.
+ * Salva a resposta no cache de resposta Ãºnica.
  * @param {string} formId
  * @param {Object|string} configJSON
  * @param {Object} payload
@@ -869,11 +872,11 @@ function _registrarRespostaUnicaCache(formId, configJSON, payload) {
 }
 
 /**
- * Retorna o índice (0-based) da coluna que corresponde ao questionId.
- * Busca nas notas da célula (linha 1) primeiro, depois no texto.
+ * Retorna o Ã­ndice (0-based) da coluna que corresponde ao questionId.
+ * Busca nas notas da cÃ©lula (linha 1) primeiro, depois no texto.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} aba
  * @param {string} questionId
- * @returns {number} Índice ou -1 se não encontrado
+ * @returns {number} Ãndice ou -1 se nÃ£o encontrado
  * @private
  */
 function _obterColunaPorId(aba, questionId) {
@@ -884,14 +887,65 @@ function _obterColunaPorId(aba, questionId) {
     const rangeHeader = aba.getRange(1, 1, 1, colunas);
     const notas = rangeHeader.getNotes()[0];
     
-    // 1. Buscar nas notas do cabeçalho
+    // 1. Buscar nas notas do cabeÃ§alho
     const idxNota = notas.indexOf(questionId);
     if (idxNota >= 0) return idxNota;
     
-    // 2. Fallback para os valores de texto do cabeçalho
+    // 2. Fallback para os valores de texto do cabeÃ§alho
     const valores = rangeHeader.getValues()[0];
     return valores.indexOf(questionId);
   } catch(e) {
     return -1;
   }
 }
+
+
+/**
+ * Move os arquivos enviados para uma subpasta especifica da resposta.
+ * @param {string} formId
+ * @param {Object} form
+ * @param {Object} payload
+ * @param {string} responseId
+ * @private
+ */
+function _organizarUploadsPorResposta(formId, form, payload, responseId) {
+  try {
+    const cfg = typeof form.configJSON === 'string' ? JSON.parse(form.configJSON) : (form.configJSON || {});
+    if (!cfg.configuracoes || cfg.configuracoes.agruparUploadsPor !== 'RESPOSTA') return;
+
+    const campoNomePasta = cfg.configuracoes.campoNomePasta || 'responseId';
+    let nomePasta = payload.respostas[campoNomePasta] || responseId;
+    nomePasta = String(nomePasta).trim().replace(/[\/\\:*?"<>|]/g, '-');
+
+    const uploadsFolderId = _obterUploadsFolderId(form.pastaId);
+    const pastaUploads = DriveApp.getFolderById(uploadsFolderId);
+    const subpasta = _obterOuCriarSubpasta(pastaUploads, nomePasta);
+
+    const urlsUpload = [];
+    Object.values(payload.respostas || {}).forEach(val => {
+      if (typeof val === 'string' && val.includes('drive.google.com/file/d/')) {
+        urlsUpload.push(val);
+      }
+      if (Array.isArray(val)) {
+        val.forEach(v => {
+          if (typeof v === 'string' && v.includes('drive.google.com/file/d/')) urlsUpload.push(v);
+        });
+      }
+    });
+
+    urlsUpload.forEach(url => {
+      const fileId = _extrairFileId(url);
+      if (fileId) {
+        try {
+          const arquivo = DriveApp.getFileById(fileId);
+          arquivo.moveTo(subpasta);
+        } catch (e) {
+          logEvento(formId, NIVEL_LOG.WARN, 'Nao foi possivel mover o arquivo ' + fileId + ' para a subpasta.');
+        }
+      }
+    });
+  } catch (e) {
+    logEvento(formId, NIVEL_LOG.ERROR, 'Erro ao organizar uploads por resposta: ' + e.message);
+  }
+}
+
